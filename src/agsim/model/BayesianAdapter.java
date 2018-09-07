@@ -1,61 +1,49 @@
 package agsim.model;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import es.um.multigraph.decision.model.BayesianNode;
 
 public class BayesianAdapter implements Adapter {
 
 	private Set<BayesianNode> BAG;
-	private List<HashMap<String, String>> myNodes;
-	private List<HashMap<String, String>> myEdges;
+	private List<HashMap<String, String>> nodes;
+	private List<HashMap<String, String>> edges;
 
-	@Override
-	public void convertAG(NodeList nodes, NodeList arcs) {
-
-		// this.BAG = new HashSet<BayesianNode>();
-		this.myNodes = new ArrayList<HashMap<String, String>>();
-		parseElements(nodes, this.myNodes);
-		this.myEdges = new ArrayList<HashMap<String, String>>();
-		parseElements(arcs, this.myEdges);
-		System.out.println(this.myNodes);
-		System.out.println(this.myEdges);
+	public BayesianAdapter() {
+		this.BAG = new HashSet<BayesianNode>();
 	}
 
-	/**
-	 * @param nodes
-	 */
-	public void parseElements(NodeList xmlNodes, List<HashMap<String, String>> myElements) {
-		for (int temp = 0; temp < xmlNodes.getLength(); temp++) {
-			Node nNode = xmlNodes.item(temp);
+	@Override
+	public void convertAG() {
+		
+	}
 
-			HashMap<String, String> myNode = new HashMap<String, String>();
+	public Set<BayesianNode> getBAG() {
+		return BAG;
+	}
 
-			NodeList subNodeList = nNode.getChildNodes();
+	public void setBAG(Set<BayesianNode> bAG) {
+		BAG = bAG;
+	}
 
-			for (int i = 0; i < subNodeList.getLength(); i++) {
-				Node currentNode = subNodeList.item(i);
+	public List<HashMap<String, String>> getMyNodes() {
+		return nodes;
+	}
 
-				if (currentNode.getNodeType() == Node.ELEMENT_NODE) {
-					Element eElement = (Element) currentNode;
-					myNode.put(eElement.getNodeName(), eElement.getTextContent());
-//					debug
-//					System.out.println(eElement.getNodeName() + ": " + eElement.getTextContent());
-				}
+	public void setMyNodes(List<HashMap<String, String>> myNodes) {
+		this.nodes = myNodes;
+	}
 
-			}
+	public List<HashMap<String, String>> getMyEdges() {
+		return edges;
+	}
 
-			myElements.add(myNode);
-		}
-
+	public void setMyEdges(List<HashMap<String, String>> myEdges) {
+		this.edges = myEdges;
 	}
 
 }
