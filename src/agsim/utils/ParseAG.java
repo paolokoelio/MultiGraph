@@ -27,8 +27,9 @@ public class ParseAG {
 		parseElements(nodes, this.myNodes);
 		this.myEdges = new ArrayList<HashMap<String, String>>();
 		parseElements(edges, this.myEdges);
-		System.out.println(this.myNodes);
-		System.out.println(this.myEdges);
+//		debug
+//		System.out.println(this.myNodes);
+//		System.out.println(this.myEdges);
 	}
 
 	public List<HashMap<String, String>> getMyNodes() {

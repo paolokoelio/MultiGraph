@@ -38,7 +38,7 @@ public class ImportAG {
 
 	}
 
-	public void parseAG() {
+	public void importAG() {
 
 		System.out.println("Loaded " + this.file.getFile() + "\n");
 

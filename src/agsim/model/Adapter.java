@@ -3,12 +3,13 @@
  */
 package agsim.model;
 
-import org.w3c.dom.NodeList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * @author julien
  *
  */
 public interface Adapter {
-	public void  convertAG(NodeList nodes, NodeList arcs);
+	public void convertAG();
 }
