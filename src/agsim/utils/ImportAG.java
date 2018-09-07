@@ -40,12 +40,12 @@ public class ImportAG {
 
 	public void importAG() {
 
-		System.out.println("Loaded " + this.file.getFile() + "\n");
+//		System.out.println("Loaded " + this.file.getFile() + "\n");
 
 		try {
 			Document doc = this.builder.parse(this.file.getFile());
 			doc.getDocumentElement().normalize();
-			System.out.println("Root element: " + doc.getDocumentElement().getNodeName());
+//			System.out.println("Root element: " + doc.getDocumentElement().getNodeName());
 
 			this.importEdges(doc);
 			this.importNodes(doc);
