@@ -2,14 +2,14 @@ package agsim.test;
 import javax.xml.parsers.ParserConfigurationException;
 
 import agsim.model.BayesianAdapter;
-import agsim.model.ParserAG;
 import agsim.utils.FileUtils;
+import agsim.utils.ImportAG;
 
 public class MainTest {
 
 	public static void main(String[] args) {
 		try {
-			ParserAG bs = new ParserAG();
+			ImportAG bs = new ImportAG();
 			FileUtils fl = new FileUtils();
 			fl.readFile("files/AttackGraph.xml");
 			BayesianAdapter adapter = new BayesianAdapter();

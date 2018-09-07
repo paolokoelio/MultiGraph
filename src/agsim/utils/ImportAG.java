@@ -1,11 +1,9 @@
 /**
  * First method from 
  */
-package agsim.model;
+package agsim.utils;
 
 import org.w3c.dom.*;
-
-import agsim.utils.FileUtils;
 
 import javax.xml.parsers.*;
 
@@ -27,14 +25,14 @@ import javax.xml.parsers.*;
 //	}
 // @author Pavlo
 
-public class ParserAG {
+public class ImportAG {
 
 	private DocumentBuilder builder;
 	private FileUtils file;
 	private NodeList aList;
 	private NodeList nList;
 
-	public ParserAG() throws ParserConfigurationException {
+	public ImportAG() throws ParserConfigurationException {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		this.builder = factory.newDocumentBuilder();
 
@@ -49,8 +47,8 @@ public class ParserAG {
 			doc.getDocumentElement().normalize();
 			System.out.println("Root element: " + doc.getDocumentElement().getNodeName());
 
-			this.parseEdges(doc);
-			this.parseNodes(doc);
+			this.importEdges(doc);
+			this.importNodes(doc);
 //			printArcs(doc);
 //			printVertices(doc);
 
@@ -78,7 +76,7 @@ public class ParserAG {
 	 * @param doc
 	 * @return NodeList node of all nodes
 	 */
-	public NodeList parseNodes(Document doc) {
+	public NodeList importNodes(Document doc) {
 		
 		this.nList = doc.getElementsByTagName("vertex");
 		return this.nList;
@@ -90,7 +88,7 @@ public class ParserAG {
 	 * @param doc
 	 * @return NodeList node of all edges
 	 */
-	public NodeList parseEdges(Document doc) {
+	public NodeList importEdges(Document doc) {
 		
 		this.aList = doc.getElementsByTagName("arc");
 		return this.aList;

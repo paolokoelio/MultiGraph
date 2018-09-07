@@ -23,18 +23,19 @@ public class BayesianAdapter implements Adapter {
 
 		// this.BAG = new HashSet<BayesianNode>();
 		this.myNodes = new ArrayList<HashMap<String, String>>();
-		importNodes(nodes);
+		parseElements(nodes, this.myNodes);
 		this.myEdges = new ArrayList<HashMap<String, String>>();
-		importNodes(arcs);
-
+		parseElements(arcs, this.myEdges);
+		System.out.println(this.myNodes);
+		System.out.println(this.myEdges);
 	}
 
 	/**
 	 * @param nodes
 	 */
-	public void importNodes(NodeList nodes) {
-		for (int temp = 0; temp < nodes.getLength(); temp++) {
-			Node nNode = nodes.item(temp);
+	public void parseElements(NodeList xmlNodes, List<HashMap<String, String>> myElements) {
+		for (int temp = 0; temp < xmlNodes.getLength(); temp++) {
+			Node nNode = xmlNodes.item(temp);
 
 			HashMap<String, String> myNode = new HashMap<String, String>();
 
@@ -46,16 +47,15 @@ public class BayesianAdapter implements Adapter {
 				if (currentNode.getNodeType() == Node.ELEMENT_NODE) {
 					Element eElement = (Element) currentNode;
 					myNode.put(eElement.getNodeName(), eElement.getTextContent());
-					// debug
+//					debug
 //					System.out.println(eElement.getNodeName() + ": " + eElement.getTextContent());
 				}
 
 			}
 
-			this.myNodes.add(myNode);
+			myElements.add(myNode);
 		}
 
-//		System.out.println(this.myNodes);
 	}
 
 }
