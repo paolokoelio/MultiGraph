@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
@@ -49,6 +50,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.junit.Test;
 
 import agsim.model.BayesianAdapter;
+import agsim.model.BayesianEdgeAdapted;
 import agsim.model.BayesianNodeAdapted;
 import agsim.utils.FileUtils;
 import agsim.utils.ImportAG;
@@ -283,8 +285,8 @@ public class BayesianAttackGraph implements DecisionInterface {
 		this.parent = main;
 		log("Start default initialization\n");
 
-		//initDefault();
-		initAGsim();
+		initDefault();
+		//initAGsim();
 
 		/*
 		 * BayesianNode A = new BayesianNode("A", Double.NaN);
@@ -452,7 +454,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 			adapter.setMyNodes(ps.getMyNodes());
 			adapter.convertAG();
 			Map<Integer, BayesianNodeAdapted> myNodes = adapter.getMyBayesianNodes();
-			Map<String, BayesianEdge> myEdges = adapter.getMyBayesianEdges();
+			Map<String, BayesianEdgeAdapted> myEdges = adapter.getMyBayesianEdges();
 			
 			try {
 				this.setupDB(true);
@@ -473,7 +475,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 				this.addNode(entry.getValue());
 			}
 
-			for (Map.Entry<String, BayesianEdge> entry : myEdges.entrySet()) {
+			for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet()) {
 				this.addEdge(entry.getValue());
 			}
 

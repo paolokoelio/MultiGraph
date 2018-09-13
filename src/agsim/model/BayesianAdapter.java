@@ -1,5 +1,6 @@
 package agsim.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -131,19 +132,32 @@ public class BayesianAdapter implements Adapter {
 	private void removeAnds() {
 
 //		System.out.println(this.edges);
-		System.out.println(this.bayesianEdges);
+//		System.out.println(this.bayesianEdges);
+		List<String> purgeList = new ArrayList<String>();
+		Map<String, BayesianEdgeAdapted> bufferUpdatedEdges = new HashMap<String, BayesianEdgeAdapted>();
+
 
 		for (Iterator<String> iter = this.bayesianToAndEdges.keySet().iterator(); iter.hasNext();) {
 			BayesianEdgeAdapted toAnd = this.bayesianToAndEdges.get(iter.next());
-
+			String oldID = toAnd.getID();
 			for (Iterator<String> iter2 = this.bayesianEdges.keySet().iterator(); iter2.hasNext();) {
 				BayesianEdgeAdapted fromAnd = this.bayesianEdges.get(iter2.next());
 
+//				looking for matching destination and source edges
 				if (toAnd.getTo().getID().equals(fromAnd.getFrom().getID())) {
 //					System.out.println(toAnd + " - " + fromAnd);
 					toAnd.setTo(fromAnd.getTo()); //TODO FIX
+//					System.out.println(toAnd.getFrom().getID() + "." + fromAnd.getTo().getID());
+					//set new id for the Edge
+					purgeList.add(toAnd.getID());
+					toAnd.setID(toAnd.getFrom().getID() + "." + fromAnd.getTo().getID());
+					bufferUpdatedEdges.put(toAnd.getID(), toAnd);					
 				}
 			}
+			iter.remove();
+			//renaming keys in the map of Edges
+			
+
 
 //			// here src and dst are inverted, because in mulVAL they're actually inverted
 //			BayesianNodeAdapted dst = this.bayesianNodes.get(atoi(tmpEdge.get("src")));
@@ -172,9 +186,20 @@ public class BayesianAdapter implements Adapter {
 //
 //			this.bayesianEdges.put(bsEdge.getID(), bsEdge);
 //			iter.remove();
-
+//			System.out.println(toAnd.getID());
 		}
+		
+		for(Iterator<String> iter = purgeList.iterator(); iter.hasNext();) {
+
+			String next = iter.next();
+//			System.out.println("deleting this: " + next);
+			this.bayesianEdges.remove(next);
+		}
+		
 //		System.out.println(this.bayesianToAndEdges);
+//		System.out.println(bufferUpdatedEdges);
+		this.bayesianEdges.putAll(bufferUpdatedEdges);
+//		System.out.println(this.bayesianEdges);
 	}
 
 	// TODO FIX
