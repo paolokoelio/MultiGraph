@@ -285,8 +285,8 @@ public class BayesianAttackGraph implements DecisionInterface {
 		this.parent = main;
 		log("Start default initialization\n");
 
-		initDefault();
-		//initAGsim();
+		//initDefault();
+		initAGsim();
 
 		/*
 		 * BayesianNode A = new BayesianNode("A", Double.NaN);
