@@ -15,6 +15,7 @@ public class BayesianAdapter implements Adapter {
 
 	private Map<Integer, BayesianNodeAdapted> bayesianNodes;
 	private Map<String, BayesianEdgeAdapted> bayesianEdges;
+//	All edges that point to an AND node
 	private Map<String, BayesianEdgeAdapted> bayesianToAndEdges;
 
 	private List<HashMap<String, String>> nodes;
@@ -25,6 +26,8 @@ public class BayesianAdapter implements Adapter {
 	public static final double DUMMY_EDGE_PROB = 0.6;
 	public static final String TYPE_AND = "AND";
 	public static final String TYPE_OR = "OR";
+	private static final Double DEFAULT_UNC_PR = 1.0;
+	public static final String EXPLOIT_NODE = "vulExists";
 	// types AND, OR and LEAF
 
 	public BayesianAdapter() {
@@ -74,8 +77,12 @@ public class BayesianAdapter implements Adapter {
 			// named with an integer (TODO integrate uuids)
 			BayesianNodeAdapted bsNode = new BayesianNodeAdapted(prependPrefix("n", tmpNode.get("id")), Double.NaN);
 			bsNode.setType(tmpNode.get("type"));
-			bsNode.setLabel(tmpNode.get("type") + " " + tmpNode.get("fact"));
+			bsNode.setLabel(tmpNode.get("fact"));
+
+//			System.out.print(tmpNode.get(""));
+
 			bsNode.setExpectedGain(DUMMY_EXPECTED_GAIN);
+//			bsNode.setUnconditionalPr(DEFAULT_UNC_PR);
 			this.bayesianNodes.put(atoi(tmpNode.get("id")), bsNode);
 			// iter.remove();
 		}
@@ -110,11 +117,11 @@ public class BayesianAdapter implements Adapter {
 				// TODO fix removal of AND nodes
 //				dst = andDst;
 
-				flagDecomp = DECOMPOSITION_AND;// set decomp AND
+				flagDecomp = DECOMPOSITION_AND;
 				bsEdge.setDecomposition(flagDecomp);
 				bsEdge.setOverridePrActivable(DUMMY_EDGE_PROB);
 				this.bayesianToAndEdges.put(bsEdge.getID(), bsEdge);
-//				continue;
+				// continue; // TODO pay attention here
 			}
 
 			BayesianEdgeAdapted bsEdge = new BayesianEdgeAdapted(edgeLabel, src, dst);
@@ -132,77 +139,123 @@ public class BayesianAdapter implements Adapter {
 	private void removeAnds() {
 
 //		System.out.println(this.edges);
-//		System.out.println(this.bayesianEdges);
-		List<String> purgeList = new ArrayList<String>();
-		Map<String, BayesianEdgeAdapted> bufferUpdatedEdges = new HashMap<String, BayesianEdgeAdapted>();
+		System.out.println("Edges befor AND removal " + this.bayesianEdges);
 
+		List<String> purgeEdgeList = new ArrayList<String>();
+		List<String> purgeNodeList = new ArrayList<String>();
+		Map<String, BayesianEdgeAdapted> bufferUpdatedEdges = new HashMap<String, BayesianEdgeAdapted>();
+		Node exploitNode = null;
+		Node andNode = null;
 
 		for (Iterator<String> iter = this.bayesianToAndEdges.keySet().iterator(); iter.hasNext();) {
 			BayesianEdgeAdapted toAnd = this.bayesianToAndEdges.get(iter.next());
-			String oldID = toAnd.getID();
-			for (Iterator<String> iter2 = this.bayesianEdges.keySet().iterator(); iter2.hasNext();) {
-				BayesianEdgeAdapted fromAnd = this.bayesianEdges.get(iter2.next());
 
-//				looking for matching destination and source edges
-				if (toAnd.getTo().getID().equals(fromAnd.getFrom().getID())) {
-//					System.out.println(toAnd + " - " + fromAnd);
-					toAnd.setTo(fromAnd.getTo()); //TODO FIX
-//					System.out.println(toAnd.getFrom().getID() + "." + fromAnd.getTo().getID());
-					//set new id for the Edge
-					purgeList.add(toAnd.getID());
-					toAnd.setID(toAnd.getFrom().getID() + "." + fromAnd.getTo().getID());
-					bufferUpdatedEdges.put(toAnd.getID(), toAnd);					
-				}
+			// if toAnd is a a vulExist node => point the other toAnds to this vulExist and
+			// point vulExist to the fromAnd
+			ArrayList<String> facts = extractFacts(toAnd.getFrom().getLabel());
+			if (facts.get(0).equals(EXPLOIT_NODE)) {
+				System.out.println(facts.get(0));
+				exploitNode = toAnd.getFrom();
 			}
-			iter.remove();
-			//renaming keys in the map of Edges
-			
 
+			if (exploitNode != null) {
+				System.out.println("Inside exploitEdge!" + exploitNode.getID());
 
-//			// here src and dst are inverted, because in mulVAL they're actually inverted
-//			BayesianNodeAdapted dst = this.bayesianNodes.get(atoi(tmpEdge.get("src")));
-//			BayesianNodeAdapted src = this.bayesianNodes.get(atoi(tmpEdge.get("dst")));
-//
-//			String edgeLabel = src.getID() + "->" + dst.getID();
-//
-//			// decomposition OR is by default
-//			boolean flagDecomp = DECOMPOSITION_OR;
-//			if (dst.getType().equals(TYPE_AND)) {
-//				// se e' AND allora cerco il dst dell'AND, lo conservo
-//				// e lo faccio diventare il dst di quello che aveva ;' AND come dst
-//				BayesianNodeAdapted andDst = findDests(dst);
-//				// TOFIX what to do with the exploit label?
-//				// edgeLabel = dst.getLabel();
-//				// System.out.println(i++ + " " + andDst.getID());
-//				dst = andDst;
-//				flagDecomp = DECOMPOSITION_AND;// set decomp AND
-//			}
-//
-//			BayesianEdge bsEdge = new BayesianEdge(edgeLabel, src, dst);
-//			bsEdge.setDecomposition(flagDecomp);
-//
-//			// TODO fix this with real metrics
-//			bsEdge.setOverridePrActivable(DUMMY_EDGE_PROB);
-//
-//			this.bayesianEdges.put(bsEdge.getID(), bsEdge);
-//			iter.remove();
-//			System.out.println(toAnd.getID());
+//				First, re-point all siblings of expolitNode to him
+				for (Iterator<String> iter2 = this.bayesianEdges.keySet().iterator(); iter2.hasNext();) {
+					BayesianEdgeAdapted edge = this.bayesianEdges.get(iter2.next());
+
+//					if the edges toAnd and edge match the AND node and the toAnd.getFrom()
+//					is an exploitNode pointing to that AND node and the fromAnd.getFrom() _is not_ the exploitNode
+					System.out.println("DEBUG: " + toAnd.getTo().getID() + "=" + edge.getTo().getID() + " AND "
+							+ toAnd.getFrom().getID() + "=" + exploitNode.getID() + " AND not " + edge.getFrom().getID()
+							+ "=" + exploitNode.getID());
+					if (toAnd.getTo().getID().equals(edge.getTo().getID())
+							& toAnd.getFrom().getID().equals(exploitNode.getID())
+							& !(edge.getFrom().getID().equals(exploitNode.getID()))) {
+//					then do point all the other edges pointing to that common AND to the exploitNode and the exploitNode to the AND's node dst
+						System.out.println("Not an exploitEdge " + edge.getID());
+						edge.setTo(exploitNode);
+						purgeEdgeList.add(edge.getID());
+						edge.setID(edge.getFrom().getID() + "." + exploitNode.getID());
+						bufferUpdatedEdges.put(edge.getID(), edge);
+
+					}
+
+//					original impl. of AND removal
+////				looking for matching destination and source edges
+//					if (toAnd.getTo().getID().equals(fromAnd.getFrom().getID())) {
+////					System.out.println(toAnd + " - " + fromAnd);
+//						toAnd.setTo(fromAnd.getTo()); // TODO FIX
+////					System.out.println(toAnd.getFrom().getID() + "." + fromAnd.getTo().getID());
+//						// set new id for the Edge
+//						purgeList.add(toAnd.getID());
+//						toAnd.setID(toAnd.getFrom().getID() + "." + fromAnd.getTo().getID());
+//						bufferUpdatedEdges.put(toAnd.getID(), toAnd);
+//					}
+
+				} // end of first for over bayesianToAndEdges
+
+//				Second, re-point the expolitNode to what its dst AND node is pointing to
+				for (Iterator<String> iter2 = this.bayesianEdges.keySet().iterator(); iter2.hasNext();) {
+					BayesianEdgeAdapted edge = this.bayesianEdges.get(iter2.next());
+
+//					if the edges toAnd and edge match the AND node and the toAnd.getFrom()
+//					is an exploitNode pointing to that AND node and the fromAnd.getFrom() _is not_ the exploitNode
+					if (toAnd.getTo().getID().equals(edge.getFrom().getID())
+							& toAnd.getFrom().getID().equals(exploitNode.getID())) {
+						System.out.println("Repointing exploitEdge " + edge.getID());
+//						Third, remove that AND node
+						purgeNodeList.add(toAnd.getTo().getID());
+						toAnd.setTo(edge.getTo());
+						purgeEdgeList.add(toAnd.getID());
+						purgeEdgeList.add(edge.getID());
+						toAnd.setID(toAnd.getFrom().getID() + "." + edge.getTo().getID());
+						bufferUpdatedEdges.put(toAnd.getID(), toAnd);
+
+					}
+				} // end of second for over bayesianToAndEdges
+
+//				 iter.remove();
+//				exploitNode = null;
+
+			} // end if(exploitNode != null)
 		}
-		
-		for(Iterator<String> iter = purgeList.iterator(); iter.hasNext();) {
 
+		for (Iterator<String> iter = purgeEdgeList.iterator(); iter.hasNext();) {
 			String next = iter.next();
 //			System.out.println("deleting this: " + next);
 			this.bayesianEdges.remove(next);
 		}
-		
+		for (Iterator<String> iter = purgeNodeList.iterator(); iter.hasNext();) {
+			String next = iter.next();
+			System.out.println("Purging node: " + next);
+			this.bayesianNodes.remove(atoi(removePrefix(next)));
+		}
+
 //		System.out.println(this.bayesianToAndEdges);
 //		System.out.println(bufferUpdatedEdges);
 		this.bayesianEdges.putAll(bufferUpdatedEdges);
-//		System.out.println(this.bayesianEdges);
+		System.out.println("Edges after AND removal " + this.bayesianEdges);
 	}
 
-	// TODO FIX
+	private ArrayList<String> extractFacts(String facts) {
+
+		ArrayList<String> factList = new ArrayList<String>();
+		String[] splitString = (facts.split("\\("));
+		// the first element is the primitive/derivate, the rest are
+		// variables/parameters of it
+		factList.add(splitString[0]);
+		String[] splitSubString = (splitString[1].split("\\)"));
+		String[] factParams = (splitSubString[0].split(","));
+		for (String string : factParams)
+			factList.add(string);
+
+		return factList;
+
+	}
+
+	// TODO FIX TO remove
 	private BayesianNodeAdapted findDests(BayesianNodeAdapted dst) {
 		String id = removePrefix(dst.getID());
 		// System.out.println(id);
