@@ -27,6 +27,7 @@ public class BayesianAdapter implements Adapter {
 	public static final String TYPE_AND = "AND";
 	public static final String TYPE_OR = "OR";
 	private static final Double DEFAULT_UNC_PR = 1.0;
+	private static final Double DEFAULT_PRIOR_PR = 1.0;
 	public static final String EXPLOIT_NODE = "vulExists";
 	// types AND, OR and LEAF
 
@@ -82,6 +83,9 @@ public class BayesianAdapter implements Adapter {
 //			System.out.print(tmpNode.get(""));
 
 			bsNode.setExpectedGain(DUMMY_EXPECTED_GAIN);
+			if (tmpNode.get("type").equals("LEAF")) // TODO set static
+				bsNode.setPriorPr(DEFAULT_PRIOR_PR);
+
 //			bsNode.setUnconditionalPr(DEFAULT_UNC_PR);
 			this.bayesianNodes.put(atoi(tmpNode.get("id")), bsNode);
 			// iter.remove();
