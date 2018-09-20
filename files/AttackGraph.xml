@@ -94,7 +94,7 @@
 </vertex>
 <vertex>
 <id>6</id>
-<fact>vulExists(fileServer,'CVE-8888',60,sshd)</fact>
+<fact>vulExists(fileServer,'CVE-8888',35,sshd)</fact>
 <metric>1</metric>
 <type>LEAF</type>
 </vertex>
@@ -118,7 +118,7 @@
 </vertex>
 <vertex>
 <id>10</id>
-<fact>vulExists(fileServer,'CVE-7777',40,nfs)</fact>
+<fact>vulExists(fileServer,'CVE-7777',24,nfs)</fact>
 <metric>1</metric>
 <type>LEAF</type>
 </vertex>
@@ -148,7 +148,7 @@
 </vertex>
 <vertex>
 <id>15</id>
-<fact>vulExists(ftpServer,'CVE-8888',60,sshd)</fact>
+<fact>vulExists(ftpServer,'CVE-8888',58,sshd)</fact>
 <metric>1</metric>
 <type>LEAF</type>
 </vertex>
