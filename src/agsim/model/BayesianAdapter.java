@@ -20,15 +20,20 @@ public class BayesianAdapter implements Adapter {
 
 	private List<HashMap<String, String>> nodes;
 	private List<HashMap<String, String>> edges;
+	
 	public static final boolean DECOMPOSITION_AND = true;
 	public static final boolean DECOMPOSITION_OR = false;
-	public static final double DUMMY_EXPECTED_GAIN = 0.5;
-	public static final double DUMMY_EDGE_PROB = 0.6;
 	public static final String TYPE_AND = "AND";
 	public static final String TYPE_OR = "OR";
+	
+	public static final double DUMMY_EXPECTED_GAIN = 0.5;
+	public static final double DUMMY_EDGE_PROB = 0.6;
+
 	private static final Double DEFAULT_UNC_PR = 1.0;
 	private static final Double DEFAULT_PRIOR_PR = 1.0;
+	
 	public static final String EXPLOIT_NODE = "vulExists";
+	public static final String PREFIX_ID = "n";
 	// types AND, OR and LEAF
 
 	public BayesianAdapter() {
@@ -51,21 +56,6 @@ public class BayesianAdapter implements Adapter {
 	}
 
 	/**
-	 * Prepends the a string identifier "node" to the ID (because of column creation
-	 * error in SQL instruction
-	 */
-	private String prependPrefix(String s, String n) {
-		return s + n;
-	}
-
-	/**
-	 * Rmoves the a string identifier "node" to the ID
-	 */
-	private String removePrefix(String s) {
-		return s.replaceFirst("n", "");
-	}
-
-	/**
 	 * Instantiate and populate BayesianNodesAdapted (see doc
 	 * {@link} BayesianNodesAdapted}.
 	 */
@@ -76,7 +66,7 @@ public class BayesianAdapter implements Adapter {
 			// TODO set prioProb to metric somehow in the future
 			// the Node ID is added a string to relief SQL problem in adding new columns
 			// named with an integer (TODO integrate uuids)
-			BayesianNodeAdapted bsNode = new BayesianNodeAdapted(prependPrefix("n", tmpNode.get("id")), Double.NaN);
+			BayesianNodeAdapted bsNode = new BayesianNodeAdapted(prependPrefix(PREFIX_ID, tmpNode.get("id")), Double.NaN);
 			bsNode.setType(tmpNode.get("type"));
 			bsNode.setLabel(tmpNode.get("fact"));
 
@@ -108,27 +98,24 @@ public class BayesianAdapter implements Adapter {
 
 			// decomposition OR is by default
 			boolean flagDecomp = DECOMPOSITION_OR;
-			if (dst.getType().equals(TYPE_AND)) {
-				// se e' AND allora cerco il dst dell'AND, lo conservo
-				// e lo faccio diventare il dst di quello che aveva l' AND come dst
-
-				BayesianEdgeAdapted bsEdge = new BayesianEdgeAdapted(edgeLabel, src, dst);
-
-//				BayesianNodeAdapted andDst = findDests(dst);
-				// TOFIX what to do with the exploit label?
-				// edgeLabel = dst.getLabel();
-				// System.out.println(i++ + " " + andDst.getID());
-				// TODO fix removal of AND nodes
-//				dst = andDst;
-
-				flagDecomp = DECOMPOSITION_AND;
-				bsEdge.setDecomposition(flagDecomp);
-				bsEdge.setOverridePrActivable(DUMMY_EDGE_PROB);
-				this.bayesianToAndEdges.put(bsEdge.getID(), bsEdge);
-				// continue; // TODO pay attention here
-			}
+//			if (dst.getType().equals(TYPE_AND)) {
+//				
+//				BayesianEdgeAdapted bsEdge = new BayesianEdgeAdapted(edgeLabel, src, dst);
+//
+//				flagDecomp = DECOMPOSITION_AND;
+//				bsEdge.setDecomposition(flagDecomp);
+//				bsEdge.setOverridePrActivable(DUMMY_EDGE_PROB);
+//				this.bayesianToAndEdges.put(bsEdge.getID(), bsEdge);
+//				// continue; // TODO pay attention here
+//			}
 
 			BayesianEdgeAdapted bsEdge = new BayesianEdgeAdapted(edgeLabel, src, dst);
+
+			if (dst.getType().equals(TYPE_AND)) {
+				flagDecomp = DECOMPOSITION_AND;
+				this.bayesianToAndEdges.put(bsEdge.getID(), bsEdge);
+			}
+
 			bsEdge.setDecomposition(flagDecomp);
 
 			// TODO fix this with real metrics
@@ -140,10 +127,15 @@ public class BayesianAdapter implements Adapter {
 		}
 	}
 
+	/**
+	 * Remove the AND nodes from MulVAL rules, transfer this logic to the edges and
+	 * implement the pre-condition, vulnerability and post-condition attributes as
+	 * per Poolsapapsit et al.
+	 */
 	private void removeAnds() {
 
 //		System.out.println(this.edges);
-		System.out.println("Edges befor AND removal " + this.bayesianEdges);
+//		System.out.println("Edges befor AND removal " + this.bayesianEdges);
 
 		List<String> purgeEdgeList = new ArrayList<String>();
 		List<String> purgeNodeList = new ArrayList<String>();
@@ -152,33 +144,33 @@ public class BayesianAdapter implements Adapter {
 		Node andNode = null;
 
 		for (Iterator<String> iter = this.bayesianToAndEdges.keySet().iterator(); iter.hasNext();) {
-			BayesianEdgeAdapted toAnd = this.bayesianToAndEdges.get(iter.next());
+			BayesianEdgeAdapted toAndEdge = this.bayesianToAndEdges.get(iter.next());
 
-			// if toAnd is a a vulExist node => point the other toAnds to this vulExist and
-			// point vulExist to the fromAnd
-			ArrayList<String> facts = extractFacts(toAnd.getFrom().getLabel());
-			if (facts.get(0).equals(EXPLOIT_NODE)) {
-				System.out.println(facts.get(0));
-				exploitNode = toAnd.getFrom();
-			}
+			ArrayList<String> facts = extractFacts(toAndEdge.getFrom().getLabel());
+			System.out.println(facts);
+			if (facts.get(0).equals(EXPLOIT_NODE))
+				exploitNode = toAndEdge.getFrom();
 
+			// if toAnd is a vulExist node => point the other toAnds to this vulExist and
+			// point vulExist to the dst of the other remaining edges
 			if (exploitNode != null) {
-				System.out.println("Inside exploitEdge!" + exploitNode.getID());
+//				System.out.println("Inside exploitEdge!" + exploitNode.getID());
 
 //				First, re-point all siblings of expolitNode to him
 				for (Iterator<String> iter2 = this.bayesianEdges.keySet().iterator(); iter2.hasNext();) {
 					BayesianEdgeAdapted edge = this.bayesianEdges.get(iter2.next());
 
+//	 //debug		System.out.println("DEBUG: " + toAndEdge.getTo().getID() + "=" + edge.getTo().getID() + " AND "
+//							+ toAndEdge.getFrom().getID() + "=" + exploitNode.getID() + " AND not " + edge.getFrom().getID()
+//							+ "=" + exploitNode.getID());
+
 //					if the edges toAnd and edge match the AND node and the toAnd.getFrom()
 //					is an exploitNode pointing to that AND node and the fromAnd.getFrom() _is not_ the exploitNode
-					System.out.println("DEBUG: " + toAnd.getTo().getID() + "=" + edge.getTo().getID() + " AND "
-							+ toAnd.getFrom().getID() + "=" + exploitNode.getID() + " AND not " + edge.getFrom().getID()
-							+ "=" + exploitNode.getID());
-					if (toAnd.getTo().getID().equals(edge.getTo().getID())
-							& toAnd.getFrom().getID().equals(exploitNode.getID())
+					if (toAndEdge.getTo().getID().equals(edge.getTo().getID())
+							& toAndEdge.getFrom().getID().equals(exploitNode.getID())
 							& !(edge.getFrom().getID().equals(exploitNode.getID()))) {
 //					then do point all the other edges pointing to that common AND to the exploitNode and the exploitNode to the AND's node dst
-						System.out.println("Not an exploitEdge " + edge.getID());
+//						System.out.println("Not an exploitEdge " + edge.getID());
 						edge.setTo(exploitNode);
 						purgeEdgeList.add(edge.getID());
 						edge.setID(edge.getFrom().getID() + "." + exploitNode.getID());
@@ -206,16 +198,16 @@ public class BayesianAdapter implements Adapter {
 
 //					if the edges toAnd and edge match the AND node and the toAnd.getFrom()
 //					is an exploitNode pointing to that AND node and the fromAnd.getFrom() _is not_ the exploitNode
-					if (toAnd.getTo().getID().equals(edge.getFrom().getID())
-							& toAnd.getFrom().getID().equals(exploitNode.getID())) {
-						System.out.println("Repointing exploitEdge " + edge.getID());
+					if (toAndEdge.getTo().getID().equals(edge.getFrom().getID())
+							& toAndEdge.getFrom().getID().equals(exploitNode.getID())) {
+//						System.out.println("Repointing exploitEdge " + edge.getID());
 //						Third, remove that AND node
-						purgeNodeList.add(toAnd.getTo().getID());
-						toAnd.setTo(edge.getTo());
-						purgeEdgeList.add(toAnd.getID());
+						purgeNodeList.add(toAndEdge.getTo().getID());
+						toAndEdge.setTo(edge.getTo());
+						purgeEdgeList.add(toAndEdge.getID());
 						purgeEdgeList.add(edge.getID());
-						toAnd.setID(toAnd.getFrom().getID() + "." + edge.getTo().getID());
-						bufferUpdatedEdges.put(toAnd.getID(), toAnd);
+						toAndEdge.setID(toAndEdge.getFrom().getID() + "." + edge.getTo().getID());
+						bufferUpdatedEdges.put(toAndEdge.getID(), toAndEdge);
 
 					}
 				} // end of second for over bayesianToAndEdges
@@ -233,16 +225,20 @@ public class BayesianAdapter implements Adapter {
 		}
 		for (Iterator<String> iter = purgeNodeList.iterator(); iter.hasNext();) {
 			String next = iter.next();
-			System.out.println("Purging node: " + next);
+//			System.out.println("Purging node: " + next);
 			this.bayesianNodes.remove(atoi(removePrefix(next)));
 		}
 
 //		System.out.println(this.bayesianToAndEdges);
 //		System.out.println(bufferUpdatedEdges);
 		this.bayesianEdges.putAll(bufferUpdatedEdges);
-		System.out.println("Edges after AND removal " + this.bayesianEdges);
+//		System.out.println("Edges after AND removal " + this.bayesianEdges); //debug
 	}
 
+	/**
+	 * Extracts the facts as per MulVAL predicates and predicate name in the first position
+	 * e.g. vulExist(facts..., vulExists, fileServer, 'CVE-7777', 40, nfs) => [vulExists, fileServer, 'CVE-7777', 40, nfs]
+	 */
 	private ArrayList<String> extractFacts(String facts) {
 
 		ArrayList<String> factList = new ArrayList<String>();
@@ -259,24 +255,19 @@ public class BayesianAdapter implements Adapter {
 
 	}
 
-	// TODO FIX TO remove
-	private BayesianNodeAdapted findDests(BayesianNodeAdapted dst) {
-		String id = removePrefix(dst.getID());
-		// System.out.println(id);
-		String tmp = "";
-		// HashMap<String, String> n = this.nodes.get(atoi(removePrefix(dst.getID())));
+	/**
+	 * Prepends the a string identifier "node" to the ID (because of column creation
+	 * error in SQL instruction
+	 */
+	private String prependPrefix(String s, String n) {
+		return s + n;
+	}
 
-		for (Iterator<HashMap<String, String>> iter = this.nodes.iterator(); iter.hasNext();) {
-			HashMap<String, String> tmpNode = iter.next();
-			// System.out.println(tmpNode.get("id"));
-			if (tmpNode.get("id").equals(id)) {
-				// System.out.println("Found node in parsed nodes: " + tmpNode.get("fact"));
-				tmpNode.get("");
-			}
-			tmp = "yo";
-		}
-
-		return this.bayesianNodes.get(atoi(tmp));
+	/**
+	 * Removes the a string identifier, PREFIX_ID, from the ID
+	 */
+	private String removePrefix(String s) {
+		return s.replaceFirst(PREFIX_ID, "");
 	}
 
 	public Map<Integer, BayesianNodeAdapted> getBAG() {
