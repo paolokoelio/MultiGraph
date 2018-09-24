@@ -124,7 +124,6 @@ public class BayesianAdapter implements Adapter {
 		List<String> purgeNodeList = new ArrayList<String>();
 		Map<String, BayesianEdgeAdapted> bufferUpdatedEdges = new HashMap<String, BayesianEdgeAdapted>();
 		Node exploitNode = null;
-		Node andNode = null;
 
 		for (Iterator<String> iter = this.bayesianToAndEdges.keySet().iterator(); iter.hasNext();) {
 			BayesianEdgeAdapted toAndEdge = this.bayesianToAndEdges.get(iter.next());
@@ -243,15 +242,6 @@ public class BayesianAdapter implements Adapter {
 		this.bayesianEdges.putAll(bufferUpdatedEdges);
 //		System.out.println("Edges after AND removal " + this.bayesianEdges); //debug
 
-		for (Iterator<String> iter = this.bayesianEdges.keySet().iterator(); iter.hasNext();) {
-			BayesianEdgeAdapted edge = this.bayesianEdges.get(iter.next());
-
-			if (edge.isDecompositionAND())
-				System.out.print(edge.getID() + " AND\n");
-			else
-				System.out.print(edge.getID() + " OR\n");
-
-		}
 	}
 
 	/**
