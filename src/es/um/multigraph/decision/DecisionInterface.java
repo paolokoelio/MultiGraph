@@ -39,7 +39,7 @@ public interface DecisionInterface<N extends Node,E extends Edge> extends EventL
     public List<Class<? extends Event>> getRecognizedEvent();
     
     /**
-     * Must be called after init() method. Is intended as as list of features 
+     * Must be called after init() method. Is intended as a list of features 
      * that the implemented model can recognize;
      * @return List of enabled features
      */

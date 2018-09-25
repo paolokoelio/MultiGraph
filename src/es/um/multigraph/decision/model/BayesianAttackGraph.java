@@ -16,10 +16,18 @@ import es.um.multigraph.decision.DecisionInterface;
 import es.um.multigraph.decision.DecisionInterfaceImpl;
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
+import es.um.multigraph.decision.model.adapt.BayesianAdapter;
+import es.um.multigraph.decision.model.adapt.BayesianEdgeAdapted;
+import es.um.multigraph.decision.model.adapt.BayesianNodeAdapted;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventStream;
 import es.um.multigraph.event.dummy.DummyEvent;
+import es.um.multigraph.event.solution.AC_AccessControl;
 import es.um.multigraph.event.solution.Solution;
+import es.um.multigraph.utils.FileUtils;
+import es.um.multigraph.utils.ImportAG;
+import es.um.multigraph.utils.ParseAG;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Connection;
@@ -48,13 +56,6 @@ import javax.swing.table.TableModel;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
-
-import agsim.model.BayesianAdapter;
-import agsim.model.BayesianEdgeAdapted;
-import agsim.model.BayesianNodeAdapted;
-import agsim.utils.FileUtils;
-import agsim.utils.ImportAG;
-import agsim.utils.ParseAG;
 
 /**
  * <h1>Dynamic Security Risk Management Using Bayesian Attack Graph</h1>
@@ -285,156 +286,17 @@ public class BayesianAttackGraph implements DecisionInterface {
 		this.parent = main;
 		log("Start default initialization\n");
 
-		//initDefault();
-		initAGsim();
+//		initDefault();
+//		initAGsim();
+		initCMsim();
 
-		/*
-		 * BayesianNode A = new BayesianNode("A", Double.NaN);
-		 * A.setLabel("Access to root/FTP server"); A.setExpectedGain(0.9);
-		 * 
-		 * //reset DB try { this.setupDB(true); } catch (SQLException ex) {
-		 * Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-		 * ex); JOptionPane.showMessageDialog(null, "" +
-		 * "There was an error while performing SQL operation.\n" +
-		 * "The system will shutdown now." + "\nSQL Error Code: " + ex.getSQLState() +
-		 * "\n" + "Exception:\n" + ex.toString() + "\n", "SQL ERROR",
-		 * JOptionPane.ERROR_MESSAGE); System.exit(-1); }
-		 * 
-		 * BayesianNode B = new BayesianNode("B", Double.NaN);
-		 * B.setLabel("Matu FTP BOF"); B.setExpectedGain(0.5);
-		 * 
-		 * BayesianNode C = new BayesianNode("C", Double.NaN);
-		 * C.setLabel("Remote BOF on ssh daemon"); B.setExpectedGain(0.2);
-		 * 
-		 * BayesianNode D = new BayesianNode("D", 0.70); D.setLabel("Remote attacker");
-		 * D.setExpectedGain(0.6);
-		 * 
-		 * try { DB.connect(); } catch (SQLException ex) {
-		 * Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-		 * ex); }
-		 * 
-		 * BayesianEdge DB = new BayesianEdge("DB", D, B);
-		 * DB.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
-		 * DB.setOverridePrActivable(0.85);
-		 * 
-		 * BayesianEdge DC = new BayesianEdge("DC", D, C);
-		 * DC.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
-		 * DC.setOverridePrActivable(0.70);
-		 * 
-		 * BayesianEdge BA = new BayesianEdge("BA", B, A);
-		 * BA.setDecomposition(BayesianEdge.DECOMPOSITION_OR);
-		 * BA.setOverridePrActivable(0.65);
-		 * 
-		 * BayesianEdge CA = new BayesianEdge("CA", C, A);
-		 * CA.setDecomposition(BayesianEdge.DECOMPOSITION_OR);
-		 * CA.setOverridePrActivable(1.00);
-		 * 
-		 * this.BAG = new HashSet<>(); this.addNode(A); this.addNode(B);
-		 * this.addNode(C); this.addNode(D);
-		 * 
-		 * this.addEdge(DB); this.addEdge(DC); this.addEdge(BA); this.addEdge(CA);
-		 * 
-		 * this.setExpectedGainWeight(0.5); this.setExpectedLossWeight(0.5);
-		 * 
-		 * /* this.compromisedNodes = new HashSet<>(); this.addCompromisedNode(A);
-		 */
-		/*
-		 * try {
-		 * 
-		 * this.computeLCPD(); this.computeUnconditionalProbability();
-		 * this.computePosterior(); } catch (Exception ex) {
-		 * Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-		 * ex); }
-		 */
-		/*
-		 * //this.log("Adding CMs"); BayesianCMNode<Solution> M0 = new
-		 * BayesianCMNode<>("M0", AC_AccessControl.AC_01);
-		 * M0.getCountermeasure().setCost(0.5);
-		 * 
-		 * BayesianCMEdge M0A = new BayesianCMEdge("M0A", M0, A);
-		 * M0A.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
-		 * 
-		 * this.addNode(M0); this.addEdge(M0A); this.enableCM(M0); /*
-		 * BayesianCMNode<Solution> M1 = new BayesianCMNode<>("M1",
-		 * AC_AccessControl.AC_02); M1.getCountermeasure().setCost(0.7);
-		 * 
-		 * BayesianCMEdge M1A = new BayesianCMEdge("M1A", M1, A);
-		 * M1A.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
-		 * 
-		 * this.addNode(M1); this.addEdge(M1A); this.enableCM(M1);
-		 * 
-		 * BayesianCMNode<Solution> M2 = new BayesianCMNode<>("M2",
-		 * AC_AccessControl.AC_03); M2.getCountermeasure().setCost(0.2);
-		 * 
-		 * BayesianCMEdge M2A = new BayesianCMEdge("M2A", M2, A);
-		 * M2A.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
-		 * 
-		 * this.addNode(M2); this.addEdge(M2A); this.enableCM(M2);
-		 */
-		/*
-		 * this.computeLCPD();
-		 * 
-		 * String[] nodesID; Boolean[] nodesState; Double prTrue; Double prFalse;
-		 * 
-		 * try { nodesID = new String[]{"B", "C", "M0"}; nodesState = new
-		 * Boolean[]{false, false, true}; prTrue = 0.0; prFalse = 1.0;
-		 * this.LCPD_SQL_updatePr(nodesID, nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{true,
-		 * false, true}; prTrue = 0.65; prFalse = 0.35; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{false,
-		 * true, true}; prTrue = 0.75; prFalse = 0.25; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{true,
-		 * true, true}; prTrue = 0.5; prFalse = 0.5; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
-		 * Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-		 * ex); } /* try { nodesID = new String[]{"B", "C", "M1"}; nodesState = new
-		 * Boolean[]{false, false, true}; prTrue = 0.0; prFalse = 1.0;
-		 * this.LCPD_SQL_updatePr(nodesID, nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M1"}; nodesState = new Boolean[]{true,
-		 * false, true}; prTrue = 0.65; prFalse = 0.35; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M1"}; nodesState = new Boolean[]{false,
-		 * true, true}; prTrue = 0.75; prFalse = 0.25; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M1"}; nodesState = new Boolean[]{true,
-		 * true, true}; prTrue = 0.5; prFalse = 0.5; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
-		 * Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-		 * ex); }
-		 * 
-		 * try { nodesID = new String[]{"B", "C", "M2"}; nodesState = new
-		 * Boolean[]{false, false, true}; prTrue = 0.0; prFalse = 1.0;
-		 * this.LCPD_SQL_updatePr(nodesID, nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M2"}; nodesState = new Boolean[]{true,
-		 * false, true}; prTrue = 0.65; prFalse = 0.35; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M2"}; nodesState = new Boolean[]{false,
-		 * true, true}; prTrue = 0.75; prFalse = 0.25; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse);
-		 * 
-		 * nodesID = new String[]{"B", "C", "M2"}; nodesState = new Boolean[]{true,
-		 * true, true}; prTrue = 0.5; prFalse = 0.5; this.LCPD_SQL_updatePr(nodesID,
-		 * nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
-		 * Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-		 * ex); }
-		 * 
-		 * try { this.computeUnconditionalProbability(true); } catch (SQLException ex) {
-		 * Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-		 * ex); }
-		 */
+		
 		log("End of initialization\n");
 	}
 
+	/**
+	 * Start AG simulation from MulVAL import.
+	 */
 	private void initAGsim() {
 		ImportAG bs;
 		this.BAG = new HashSet<>();
@@ -489,7 +351,165 @@ public class BayesianAttackGraph implements DecisionInterface {
 	}
 
 	/**
-	 * 
+	 * Start Counter Measure example conf.
+	 */
+	private void initCMsim() {
+				
+		
+		  BayesianNode A = new BayesianNode("A", Double.NaN);
+		  A.setLabel("Access to root/FTP server"); A.setExpectedGain(0.9);
+		  
+		  //reset DB
+		  try { this.setupDB(true); } catch (SQLException ex) {
+		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  ex); JOptionPane.showMessageDialog(null, "" +
+		  "There was an error while performing SQL operation.\n" +
+		  "The system will shutdown now." + "\nSQL Error Code: " + ex.getSQLState() +
+		  "\n" + "Exception:\n" + ex.toString() + "\n", "SQL ERROR",
+		  JOptionPane.ERROR_MESSAGE); System.exit(-1); }
+		  
+		  BayesianNode B = new BayesianNode("B", Double.NaN);
+		  B.setLabel("Matu FTP BOF"); B.setExpectedGain(0.5);
+		  
+		  BayesianNode C = new BayesianNode("C", Double.NaN);
+		  C.setLabel("Remote BOF on ssh daemon"); B.setExpectedGain(0.2);
+		  
+		  BayesianNode D = new BayesianNode("D", 0.70); D.setLabel("Remote attacker");
+		  D.setExpectedGain(0.6);
+		  
+		  try { DB.connect(); } catch (SQLException ex) {
+		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  ex); }
+		  
+		  BayesianEdge DB = new BayesianEdge("DB", D, B);
+		  DB.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
+		  DB.setOverridePrActivable(0.85);
+		  
+		  BayesianEdge DC = new BayesianEdge("DC", D, C);
+		  DC.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
+		  DC.setOverridePrActivable(0.70);
+		  
+		  BayesianEdge BA = new BayesianEdge("BA", B, A);
+		  BA.setDecomposition(BayesianEdge.DECOMPOSITION_OR);
+		  BA.setOverridePrActivable(0.65);
+		  
+		  BayesianEdge CA = new BayesianEdge("CA", C, A);
+		  CA.setDecomposition(BayesianEdge.DECOMPOSITION_OR);
+		  CA.setOverridePrActivable(1.00);
+		  
+		  this.BAG = new HashSet<>(); this.addNode(A); this.addNode(B);
+		  this.addNode(C); this.addNode(D);
+		  
+		  this.addEdge(DB); this.addEdge(DC); this.addEdge(BA); this.addEdge(CA);
+		  
+		  this.setExpectedGainWeight(0.5); this.setExpectedLossWeight(0.5);
+		  
+//		  this.compromisedNodes = new HashSet<>(); this.addCompromisedNode(A);
+		 
+		
+		  try {
+		  
+		  this.computeLCPD(); this.computeUnconditionalProbability(true);
+//		  this.computePosterior(true); 
+		  } catch (Exception ex) {
+		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  ex); }
+		 
+		  //this.log("Adding CMs");
+		  BayesianCMNode<Solution> M0 = new
+		  BayesianCMNode<>("M0", AC_AccessControl.AC_01);
+		  M0.getCountermeasure().setCost(0.5);
+		  
+		  BayesianCMEdge M0A = new BayesianCMEdge("M0A", M0, A);
+		  M0A.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
+		  
+		  this.addNode(M0); this.addEdge(M0A); this.enableCM(M0); 
+		  
+/*		  BayesianCMNode<Solution> M1 = new BayesianCMNode<>("M1",
+		  AC_AccessControl.AC_02); M1.getCountermeasure().setCost(0.7);
+		  
+		  BayesianCMEdge M1A = new BayesianCMEdge("M1A", M1, A);
+		  M1A.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
+		  
+		  this.addNode(M1); this.addEdge(M1A); this.enableCM(M1);
+		  
+		  BayesianCMNode<Solution> M2 = new BayesianCMNode<>("M2",
+		  AC_AccessControl.AC_03); M2.getCountermeasure().setCost(0.2);
+		  
+		  BayesianCMEdge M2A = new BayesianCMEdge("M2A", M2, A);
+		  M2A.setDecomposition(BayesianEdge.DECOMPOSITION_AND);
+		  
+		  this.addNode(M2); this.addEdge(M2A); this.enableCM(M2);
+*/
+		 
+		  this.computeLCPD();
+		  
+		  
+		  String[] nodesID; Boolean[] nodesState; Double prTrue; Double prFalse;
+		  
+		  try { nodesID = new String[]{"B", "C", "M0"}; nodesState = new
+		  Boolean[]{false, false, true}; prTrue = 0.0; prFalse = 1.0;
+		  this.LCPD_SQL_updatePr(nodesID, nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{true,
+		  false, true}; prTrue = 0.65; prFalse = 0.35; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{false,
+		  true, true}; prTrue = 0.75; prFalse = 0.25; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{true,
+		  true, true}; prTrue = 0.0; prFalse = 1.0; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
+		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  ex); }  
+		  
+		  /*try { nodesID = new String[]{"B", "C", "M1"}; nodesState = new
+		  Boolean[]{false, false, true}; prTrue = 0.0; prFalse = 1.0;
+		  this.LCPD_SQL_updatePr(nodesID, nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M1"}; nodesState = new Boolean[]{true,
+		  false, true}; prTrue = 0.65; prFalse = 0.35; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M1"}; nodesState = new Boolean[]{false,
+		  true, true}; prTrue = 0.75; prFalse = 0.25; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M1"}; nodesState = new Boolean[]{true,
+		  true, true}; prTrue = 0.5; prFalse = 0.5; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
+		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  ex); }
+		  
+		  try { nodesID = new String[]{"B", "C", "M2"}; nodesState = new
+		  Boolean[]{false, false, true}; prTrue = 0.0; prFalse = 1.0;
+		  this.LCPD_SQL_updatePr(nodesID, nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M2"}; nodesState = new Boolean[]{true,
+		  false, true}; prTrue = 0.65; prFalse = 0.35; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M2"}; nodesState = new Boolean[]{false,
+		  true, true}; prTrue = 0.75; prFalse = 0.25; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse);
+		  
+		  nodesID = new String[]{"B", "C", "M2"}; nodesState = new Boolean[]{true,
+		  true, true}; prTrue = 0.5; prFalse = 0.5; this.LCPD_SQL_updatePr(nodesID,
+		  nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
+		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  ex); }
+		  */
+		  try { this.computeUnconditionalProbability(true); } catch (SQLException ex) {
+		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  ex); }
+		 
+	}
+	
+	/**
+	 * Start default configuration as per PoC,
+	 * Ref. Example in fig. 3 in the paper
 	 */
 	public void initDefault() {
 		BayesianNode A = new BayesianNode("A", 0.6);

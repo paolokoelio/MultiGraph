@@ -1,4 +1,4 @@
-package agsim.model;
+package es.um.multigraph.decision.model.adapt;
 
 import es.um.multigraph.decision.model.BayesianNode;
 

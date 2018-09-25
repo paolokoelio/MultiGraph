@@ -6,10 +6,10 @@
  * (C) 2015 - Mattia Zago
  *
  */
-package agsim.model;
+package es.um.multigraph.decision.model.adapt;
 
 import es.um.multigraph.decision.model.BayesianEdge;
-import agsim.model.BayesianNodeAdapted;
+import es.um.multigraph.decision.model.adapt.BayesianNodeAdapted;
 
 /**
  * An edge is a representation of an exploit between two different nodes/states.

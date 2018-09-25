@@ -1,4 +1,4 @@
-package agsim.moop;
+package es.um.multigraph.decision.model.moop;
 
 import org.moeaframework.core.Solution;
 import org.moeaframework.core.variable.EncodingUtils;
@@ -30,7 +30,7 @@ public class MOOProblem extends AbstractProblem {
 	public static double[][] lg = { { -0.088, 0.2 }, { -0.104, 0.4 }, { 0, 0.7 }, { 0.2, 0.4 } };
 
 	/**
-	 * Entry {@code constraint[i]} is an applicable constraint to the problem (e.g.
+	 * Entry {@code constraint} is an applicable constraint to the problem (e.g.
 	 * a max budget).
 	 */
 	public static int constraint = 10;
@@ -76,7 +76,6 @@ public class MOOProblem extends AbstractProblem {
 //		maximization of LG
 		g = -g;
 		solution.setObjective(1, g);
-//		solution.setObjectives(f);
 
 //		in case we have limited budget (optional)
 //		solution.setConstraints(f);

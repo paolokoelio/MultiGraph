@@ -1,11 +1,11 @@
-package agsim.test;
+package es.um.multigraph.core.test;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import agsim.model.BayesianAdapter;
-import agsim.utils.FileUtils;
-import agsim.utils.ImportAG;
-import agsim.utils.ParseAG;
+import es.um.multigraph.decision.model.adapt.BayesianAdapter;
+import es.um.multigraph.utils.FileUtils;
+import es.um.multigraph.utils.ImportAG;
+import es.um.multigraph.utils.ParseAG;
 
 public class MainTest {
 

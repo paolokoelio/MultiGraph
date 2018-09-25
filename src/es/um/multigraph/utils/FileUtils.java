@@ -1,7 +1,7 @@
 /**
  * 
  */
-package agsim.utils;
+package es.um.multigraph.utils;
 import java.io.File;
 
 /**

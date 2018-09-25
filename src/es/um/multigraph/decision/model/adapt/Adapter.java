@@ -1,7 +1,7 @@
 /**
  * 
  */
-package agsim.model;
+package es.um.multigraph.decision.model.adapt;
 
 import java.util.HashMap;
 import java.util.List;

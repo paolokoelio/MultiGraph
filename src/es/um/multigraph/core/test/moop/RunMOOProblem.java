@@ -1,4 +1,4 @@
-package agsim.test.moop;
+package es.um.multigraph.core.test.moop;
 
 import java.io.IOException;
 
@@ -7,7 +7,7 @@ import org.moeaframework.analysis.plot.Plot;
 import org.moeaframework.core.NondominatedPopulation;
 import org.moeaframework.core.Solution;
 
-import agsim.moop.MOOProblem;
+import es.um.multigraph.decision.model.moop.MOOProblem;
 
 public class RunMOOProblem {
 

@@ -1,7 +1,7 @@
 /**
  * First method from 
  */
-package agsim.utils;
+package es.um.multigraph.utils;
 
 import org.w3c.dom.*;
 

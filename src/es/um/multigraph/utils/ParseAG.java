@@ -1,4 +1,4 @@
-package agsim.utils;
+package es.um.multigraph.utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
