@@ -17,6 +17,7 @@ import es.um.multigraph.decision.DecisionInterfaceImpl;
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
 import es.um.multigraph.decision.model.adapt.BayesianAdapter;
+import es.um.multigraph.decision.model.adapt.BayesianCMGenerator;
 import es.um.multigraph.decision.model.adapt.BayesianEdgeAdapted;
 import es.um.multigraph.decision.model.adapt.BayesianNodeAdapted;
 import es.um.multigraph.event.Event;
@@ -36,6 +37,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -287,8 +289,8 @@ public class BayesianAttackGraph implements DecisionInterface {
 		log("Start default initialization\n");
 
 //		initDefault();
-//		initAGsim();
-		initCMsim();
+		initAGsim();
+//		initCMsim();
 
 		
 		log("End of initialization\n");
@@ -318,6 +320,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 			Map<Integer, BayesianNodeAdapted> myNodes = adapter.getMyBayesianNodes();
 			Map<String, BayesianEdgeAdapted> myEdges = adapter.getMyBayesianEdges();
 			
+			
 			try {
 				this.setupDB(true);
 				this.DB.connect();
@@ -331,9 +334,6 @@ public class BayesianAttackGraph implements DecisionInterface {
 			}
 
 			for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet()) {
-//				debug
-//				System.out.println("MyBayesian: " + entry.getKey() + " " + entry.getValue());
-//				System.out.println(entry.getValue().getID());
 				this.addNode(entry.getValue());
 			}
 
@@ -341,6 +341,45 @@ public class BayesianAttackGraph implements DecisionInterface {
 				this.addEdge(entry.getValue());
 			}
 
+			  try {
+				  
+				  this.computeLCPD(); this.computeUnconditionalProbability(true);
+//				  this.computePosterior(true); 
+				  } catch (Exception ex) {
+				  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+				  ex); }
+			
+			/*
+			 * Automatically generating CMs for compatible nodes as defined in TODO
+			 */
+			
+			BayesianCMGenerator bGen = new BayesianCMGenerator(this.getNodes());
+//			bGen.setNodes
+			
+
+			bGen.generateCMs();
+			
+			Set<BayesianCMNode<Solution>> myCMNodes = bGen.getMyCMNodes();
+//			System.out.print("myCMNodes " + myCMNodes);
+			ArrayList<BayesianCMEdge> myCMEdges = bGen.getMyCMEdges();
+			
+			for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); ) {
+				this.addNode(iter.next());
+//				this.enableCM(iter.next());
+//				BayesianCMNode<Solution> cmNode = iter.next();
+			}
+			
+			for (Iterator<BayesianCMEdge> iter =  myCMEdges.iterator(); iter.hasNext(); ) {
+				this.addEdge(iter.next());
+//				BayesianCMEdge cmEdge = iter.next();
+			}
+			
+			for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); ) {
+				this.enableCM(iter.next());
+			}
+			
+			
+			
 		} catch (ParserConfigurationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -348,6 +387,9 @@ public class BayesianAttackGraph implements DecisionInterface {
 
 		this.setExpectedGainWeight(0.5);
 		this.setExpectedLossWeight(0.5);
+		
+
+		
 	}
 
 	/**
@@ -1375,6 +1417,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		this.BAG.add((BayesianNode) node);
 		try {
 			if (node instanceof BayesianCMNode) {
+				System.out.println(" in addNOde");
 				this.LCPD_SQL_addColumn(node.getID(), "CHAR(1)", false, "0");
 				this.securityControls.add((BayesianCMNode) node);
 
