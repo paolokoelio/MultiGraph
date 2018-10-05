@@ -24,11 +24,12 @@ public class BayesianCMGenerator {
 
 	private Collection<? extends Node> bag;
 	private static final String EXPLOIT_NODE = "vulExists";
+	private static final String CM_NODE = "pn";
 	private static final double DEFAULT_COST = 0.5;
+	private static final double DEFAULT_prFalse = 1.0;
+	private static final double DEFAULT_prTrue = 0.0;
 
-//	private ArrayList<BayesianCMNode<Solution>> myCMNodes;
 	private Set<BayesianCMNode<Solution>> myCMNodes;
-
 	private ArrayList<BayesianCMEdge> myCMEdges;
 
 	public BayesianCMGenerator(Collection<? extends Node> bag) {
@@ -40,7 +41,7 @@ public class BayesianCMGenerator {
 	public void generateCMs() {
 
 		for (Iterator<? extends Node> iterator = this.bag.iterator(); iterator.hasNext();) {
-			
+
 			BayesianNode node = (BayesianNode) iterator.next();
 
 			ArrayList<String> facts = extractFacts(node.getLabel());
@@ -55,16 +56,14 @@ public class BayesianCMGenerator {
 				String edgeId = nodeId + "." + node.getID();
 				BayesianCMEdge cmEdge = new BayesianCMEdge(edgeId, cm, node);
 				cmEdge.setDecomposition(BayesianCMEdge.DECOMPOSITION_AND);
-				
+
 				this.myCMNodes.add(cm);
 				this.myCMEdges.add(cmEdge);
 //				bag.enableCM(cm);
 
-				
-
 			}
 		}
-		
+
 //		System.out.println("CM nodes: " + this.myCMNodes);	//debug
 //		
 
@@ -92,12 +91,45 @@ public class BayesianCMGenerator {
 
 	}
 
+	/**
+	 * Or function for char arrays and 
+	 * @param nodesStates
+	 * @param str
+	 * @return
+	 */
+	public ArrayList<Boolean> or(ArrayList<Boolean> nodesStates, char[] str) {
+		for(int j=0; j < str.length; j++) 
+	       if(str[j] == '1' )
+	        	nodesStates.set(j, true);
+		return nodesStates;
+     }
+	
 	public Set<BayesianCMNode<Solution>> getMyCMNodes() {
 		return this.myCMNodes;
 	}
 
 	public ArrayList<BayesianCMEdge> getMyCMEdges() {
 		return this.myCMEdges;
+	}
+
+	public static String getExploitNode() {
+		return EXPLOIT_NODE;
+	}
+
+	public static String getCmNode() {
+		return CM_NODE;
+	}
+
+	public static double getDefaultCost() {
+		return DEFAULT_COST;
+	}
+
+	public static double getDefaultPrfalse() {
+		return DEFAULT_prFalse;
+	}
+
+	public static double getDefaultPrtrue() {
+		return DEFAULT_prTrue;
 	}
 
 }

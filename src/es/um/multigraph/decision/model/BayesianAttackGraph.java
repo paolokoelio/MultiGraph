@@ -290,7 +290,24 @@ public class BayesianAttackGraph implements DecisionInterface {
 		log("Start default initialization\n");
 
 //		initDefault();
-		initAGsim();
+		
+		try {
+			initAGsim();
+		} catch (SQLException ex) {
+			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			JOptionPane.showMessageDialog(null,
+					"" + "There was an error while performing SQL operation.\n" + "The system will shutdown now."
+							+ "\nSQL Error Code: " + ex.getSQLState() + "\n" + "Exception:\n" + ex.toString() + "\n",
+					"SQL ERROR", JOptionPane.ERROR_MESSAGE);
+			System.exit(-1);
+		} catch (ParserConfigurationException e) {
+			JOptionPane.showMessageDialog(null,"There was an error during parsing operation.\n");
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		
+
+		
 //		initCMsim();
 
 		
@@ -299,169 +316,143 @@ public class BayesianAttackGraph implements DecisionInterface {
 
 	/**
 	 * Start AG simulation from MulVAL import.
+	 * @throws SQLException 
 	 */
-	private void initAGsim() {
+	private void initAGsim() throws SQLException, ParserConfigurationException {
 		ImportAG bs;
 		this.BAG = new HashSet<>();
 
-		try {
-			bs = new ImportAG();
 
-			FileUtils fl = new FileUtils();
-			fl.readFile("files/AttackGraph.xml");
+		bs = new ImportAG();
 
-			bs.setFile(fl);
-			bs.importAG();
-			ParseAG ps = new ParseAG(bs.getNodes(), bs.getEdges());
-			ps.parseAG();
-			BayesianAdapter adapter = new BayesianAdapter();
-			adapter.setMyEdges(ps.getMyEdges());
-			adapter.setMyNodes(ps.getMyNodes());
-			adapter.convertAG();
-			Map<Integer, BayesianNodeAdapted> myNodes = adapter.getMyBayesianNodes();
-			Map<String, BayesianEdgeAdapted> myEdges = adapter.getMyBayesianEdges();
-			
-			
-			try {
-				this.setupDB(true);
-				this.DB.connect();
-			} catch (SQLException ex) {
-				Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
-				JOptionPane.showMessageDialog(null,
-						"" + "There was an error while performing SQL operation.\n" + "The system will shutdown now."
-								+ "\nSQL Error Code: " + ex.getSQLState() + "\n" + "Exception:\n" + ex.toString() + "\n",
-						"SQL ERROR", JOptionPane.ERROR_MESSAGE);
-				System.exit(-1);
-			}
+		FileUtils fl = new FileUtils();
+		fl.readFile("files/AttackGraph.xml");
 
-			for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet()) {
-				this.addNode(entry.getValue());
-			}
+		bs.setFile(fl);
+		bs.importAG();
+		ParseAG ps = new ParseAG(bs.getNodes(), bs.getEdges());
+		ps.parseAG();
+		
+		BayesianAdapter adapter = new BayesianAdapter();
+		adapter.setMyEdges(ps.getMyEdges());
+		adapter.setMyNodes(ps.getMyNodes());
+		adapter.convertAG();
+		Map<Integer, BayesianNodeAdapted> myNodes = adapter.getMyBayesianNodes();
+		Map<String, BayesianEdgeAdapted> myEdges = adapter.getMyBayesianEdges();
 
-			for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet()) {
-				this.addEdge(entry.getValue());
-			}
+		this.setupDB(true);
+		this.DB.connect();
 
-			/*
-			 * Automatically generating CMs for compatible nodes as defined in TODO
-			 */
-			
-			BayesianCMGenerator bGen = new BayesianCMGenerator(this.getNodes());
-			bGen.generateCMs();
-			
-			Set<BayesianCMNode<Solution>> myCMNodes = bGen.getMyCMNodes();
-			ArrayList<BayesianCMEdge> myCMEdges = bGen.getMyCMEdges();
-			
-			for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
-				this.addNode(iter.next());
-			
-			for (Iterator<BayesianCMEdge> iter =  myCMEdges.iterator(); iter.hasNext(); )
-				this.addEdge(iter.next());
-			
-			for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
-				this.enableCM(iter.next());
-			
-			
-			  this.computeLCPD();
-			  
-			  
-			/* For every CM node set the probabilities for every sibling node for each true and false case*/
-			for (Iterator<? extends Node> iterator = this.getCMNodes().iterator(); iterator.hasNext();) {
-				Node cm = iterator.next();
-				
-				ArrayList<String> siblingNodesID = new ArrayList<String>();
-//				ArrayList<Boolean> nodesStates = new ArrayList<Boolean>();
-				Boolean[] nodesStates = null;
-				
-				/* Get every sibling node of CM and initialize the vector of nodesStates the CM nodes are true every time*/
-			    for (Edge out : cm.getOut()) {
-			    	nodesStates = new Boolean[out.getTo().getParentsIDs().size()];
-			        int i = 0; double prTrue = 0.0; double prFalse = 1.0;
-			        for (Iterator<String> it2 = out.getTo().getParentsIDs().iterator(); it2.hasNext();) {
-						siblingNodesID.add(it2.next());
-						
-						//TODO fix this check, maybe a static variable or smthn: CM_NODE_TYPE = "pn" 
-						if(siblingNodesID.get(i).contains("pn")) nodesStates[i] = false; else nodesStates[i] = false;
-						i++;
-					}
-			    }
-			    
-//			    String bools = "";	//debug
-			    double size = siblingNodesID.size();
-			    for (int i=0; i<Math.pow(2,size); i++) {
-			        String str = Integer.toBinaryString(i);
-			       
-			        while(str.length() < size)
-			        	str = "0" + str;
-			        
-//			        System.out.printf(str + " ");	//debug
-			        	
-			        nodesStates = this.or(nodesStates, str.toCharArray());
-			        
-//			        for(int j=0; j < nodesStates.length; j++)	//debug
-//			        	bools = bools + " " + nodesStates[j];
-//			        	
-//			        System.out.println( " " + bools);
-//			        bools = "";
-			        
-			        for (int j = 0; j < nodesStates.length; j++) {
-			        	nodesStates[j] = false;	
-					}
-			        
-			    }
-			    
-			    System.out.println("\n");
-			    
-			}
-			
-			  
-			  String[] nodesID; Boolean[] nodesState; Double prTrue; Double prFalse;
-			  
-/*			  try { nodesID = new String[]{"B", "C", "M0"}; nodesState = new
-			  Boolean[]{false, false, true}; prTrue = 0.0; prFalse = 1.0;
-			  this.LCPD_SQL_updatePr(nodesID, nodesState, "A", prTrue, prFalse);
-			  
-			  nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{true,
-			  false, true}; prTrue = 0.65; prFalse = 0.35; this.LCPD_SQL_updatePr(nodesID,
-			  nodesState, "A", prTrue, prFalse);
-			  
-			  nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{false,
-			  true, true}; prTrue = 0.75; prFalse = 0.25; this.LCPD_SQL_updatePr(nodesID,
-			  nodesState, "A", prTrue, prFalse);
-			  
-			  nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{true,
-			  true, true}; prTrue = 0.0; prFalse = 1.0; this.LCPD_SQL_updatePr(nodesID,
-			  nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
-			  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
-			  ex); }*/
-			
-			
-			
-		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet()) {
+			this.addNode(entry.getValue());
 		}
 
+		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet()) {
+			this.addEdge(entry.getValue());
+		}
+		
+		log("BAG parsed and converted\n");
+
+		/*
+		 * Automatically generating CMs for compatible nodes as defined in (by me TODO)
+		 */
+		
+		BayesianCMGenerator bGen = new BayesianCMGenerator(this.getNodes());
+		bGen.generateCMs();
+		
+		Set<BayesianCMNode<Solution>> myCMNodes = bGen.getMyCMNodes();
+		ArrayList<BayesianCMEdge> myCMEdges = bGen.getMyCMEdges();
+		
+		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
+			this.addNode(iter.next());
+		
+		for (Iterator<BayesianCMEdge> iter =  myCMEdges.iterator(); iter.hasNext(); )
+			this.addEdge(iter.next());
+		
+		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
+			this.enableCM(iter.next());
+		
+		
+		this.computeLCPD();
+		log("Counter Measures added\n");
+		  
+		updateCMlcpd(bGen);
+		
+		log("Counter Measures added\n");
+			
+
+		/* set dummy expected LG for SOOP ?*/
 		this.setExpectedGainWeight(0.5);
 		this.setExpectedLossWeight(0.5);
 		
+	}
 
-		
+	/**
+	 * Automatically generates the necessary to enable and update CM nodes (set the default 
+	 * probabilities a CM gives to its sibling nodes).
+	 * @throws SQLException
+	 */
+	private void updateCMlcpd(BayesianCMGenerator bGen) throws SQLException {
+		/* For every CM node set the probabilities for every sibling node for each true and false case */
+		for (Iterator<? extends Node> it = this.getCMNodes().iterator(); it.hasNext();) {
+			Node cm = it.next();
+			
+			ArrayList<String> siblingNodesID = null;
+			ArrayList<Boolean> nodesStates = null;
+			double prTrue = BayesianCMGenerator.getDefaultPrtrue(); double prFalse = BayesianCMGenerator.getDefaultPrfalse();
+			
+			/* Get every out Edge of every CM node (they point only to vulExists nodes) */
+		    for (Edge out : cm.getOut()) {
+		    	siblingNodesID = new ArrayList<String>();
+		    	nodesStates = new ArrayList<Boolean>();
+
+		        /* Get every sibling node of CM and initialize the vector of nodesStates (the CM nodes are true every time) */
+		        for (Iterator<String> it2 = out.getTo().getParentsIDs().iterator(); it2.hasNext();) {
+					String parentID = it2.next();
+					/* If not a CM node then add to siblings */
+					if(parentID.contains(BayesianCMGenerator.getCmNode())) {
+					}
+					else {
+						siblingNodesID.add(parentID);
+						nodesStates.add(false);
+					}
+				}
+		        
+			    /* Generate true-false combinations for every sibling node by performing OR operation against fake bit combinations and the t-f array */
+		        double size = siblingNodesID.size();
+		        for (int j = 0; j < Math.pow(2,size); j++) {
+			    	/* Generate " bit string" */
+			        String str = Integer.toBinaryString(j);
+			        /* pad with zeros */
+			        while(str.length() < size)
+			        	str = "0" + str;
+			        
+			        /* Combination ready */
+			        nodesStates = bGen.or(nodesStates, str.toCharArray());
+			        
+			        /* Add last CM node state */
+			        siblingNodesID.add(cm.getID());
+			        nodesStates.add(true);
+			        
+			        /* Send this transaction to SQL */
+			        this.LCPD_SQL_updatePr(siblingNodesID.toArray(new String[siblingNodesID.size()]), nodesStates.toArray(new Boolean[nodesStates.size()]), out.getTo().getID(), prTrue, prFalse);
+			        
+//				        System.out.println(nodesStates);	//debug
+//				        System.out.println(siblingNodesID);	//debug
+			        
+			        /* Remove CM node and state */
+			        siblingNodesID.remove(siblingNodesID.size()-1);
+			        nodesStates.remove(nodesStates.size()-1);
+			        
+			        /* Reset the bool array for the next iter */
+			        for (int k = 0; k < nodesStates.size(); k++) {
+			        	nodesStates.set(k,false);
+					}
+				}
+		    }
+		}
 	}	
 	
-	/**
-	 * Or function for char arrays and 
-	 * @param nodesStates
-	 * @param str
-	 * @return
-	 */
-	private Boolean[] or(Boolean[] nodesStates, char[] str) {
-		for(int j=0; j < str.length; j++) 
-	       if(str[j] == '1' )
-	        	nodesStates[j]=true;
-		return nodesStates;
-     }
-
 	/**
 	 * Start Counter Measure example conf.
 	 */
