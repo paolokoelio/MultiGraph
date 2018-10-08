@@ -20,6 +20,7 @@ import es.um.multigraph.decision.model.adapt.BayesianAdapter;
 import es.um.multigraph.decision.model.adapt.BayesianCMGenerator;
 import es.um.multigraph.decision.model.adapt.BayesianEdgeAdapted;
 import es.um.multigraph.decision.model.adapt.BayesianNodeAdapted;
+import es.um.multigraph.decision.model.moop.MOOProblem;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventStream;
 import es.um.multigraph.event.dummy.DummyEvent;
@@ -43,6 +44,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +61,10 @@ import javax.swing.table.TableModel;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
+import org.moeaframework.Executor;
+import org.moeaframework.analysis.plot.Plot;
+import org.moeaframework.core.NondominatedPopulation;
+import org.moeaframework.core.Variable;
 
 /**
  * <h1>Dynamic Security Risk Management Using Bayesian Attack Graph</h1>
@@ -343,16 +349,23 @@ public class BayesianAttackGraph implements DecisionInterface {
 		this.setupDB(true);
 		this.DB.connect();
 
-		for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet()) {
+		for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet())
 			this.addNode(entry.getValue());
-		}
+		
 
-		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet()) {
+		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet())
 			this.addEdge(entry.getValue());
-		}
 		
 		log("BAG parsed and converted\n");
-
+		
+		Map<String, Double> exlg = new LinkedHashMap<String, Double>();
+		this.computeLCPD();
+		this.computeUnconditionalProbability(true);
+		
+		for (BayesianNode n : this.BAG) {
+			exlg.put(n.getID(),n.getExpectedLossGain());
+		}
+		
 		/*
 		 * Automatically generating CMs for compatible nodes as defined in (by me TODO)
 		 */
@@ -378,13 +391,118 @@ public class BayesianAttackGraph implements DecisionInterface {
 		  
 		updateCMlcpd(bGen);
 		
-		log("Counter Measures added\n");
+		log("Counter Measures LCPDs updated\n");
 			
 
 		/* set dummy expected LG for SOOP ?*/
 		this.setExpectedGainWeight(0.5);
 		this.setExpectedLossWeight(0.5);
 		
+		/* Start MOOP procedures */
+		
+		log("Starting MOOP procedures\n");
+		
+		/* Getting CM IDs and associated costs */
+		int cmSize = this.getCMNodes().size();
+		String[] cmIds = new String[cmSize];
+		double[] cmSSCs= new double[cmSize];
+		int i = 0;
+		
+		for (BayesianCMNode cm : this.getCMNodes()) {
+			cmIds[i] = cm.getID();
+			cmSSCs[i]= cm.getCountermeasure().getCost();
+			i++;
+		}
+		
+		/* Computing LGs after applying the CMs */
+		Map<String, Double> exlgAfter = new LinkedHashMap<String, Double>();
+		this.computeLCPD();
+		this.computeUnconditionalProbability(true);
+		
+		for (BayesianNode n : this.BAG) 
+			exlgAfter.put(n.getID(),n.getExpectedLossGain());
+
+//		System.out.println("Expected loss/gains before CMs " + exlg + " and after " + exlgAfter + "\n");	//debug
+		
+		
+		Map<String, double[]> lgsMap = this.getNodesLGs(exlg, exlgAfter);
+		
+		// get an array of IDs of the lgshMap
+		String[] ids = lgsMap.keySet().toArray(new String[0]);
+
+		// get an array of lgs of the lgsMap
+		double[][] lgs = lgsMap.values().toArray(new double[0][0]);
+		
+		MOOProblem moop = new MOOProblem(1, 2);
+		
+		moop.setLg(lgs); moop.setScc(cmSSCs);
+		moop.setNvulns(this.getCMNodes().size()); moop.setNcms(this.getCMNodes().size());
+		log(moop.getPropsRepresentation());
+		
+		NondominatedPopulation result = new Executor().withProblem(moop).withAlgorithm("NSGAII")
+				.withProperty("withReplacement", true).withMaxEvaluations(100).distributeOnAllCores().run();
+
+		Plot plot = new Plot();
+		List<List<String>> secPlans = new ArrayList<List<String>>();
+		
+		List<String> secPlan = null;
+		char[] solString = null;
+
+		for (i = 0; i < result.size(); i++) {
+			org.moeaframework.core.Solution solution = result.get(i);
+			double[] objectives = solution.getObjectives();
+			objectives[1] = -solution.getObjective(1);
+
+			Variable sol = solution.getVariable(0);
+			
+			log("Solution " + (i + 1) + ":" + " SCC min: " + objectives[0] + " LG max: " + objectives[1] + " Binary String: " + sol + "\n");
+
+			solString = sol.toString().toCharArray();
+			secPlan = new ArrayList<>();
+			
+			for (int j = 0; j < solString.length; j++)
+				if(solString[j] == '1' )
+					secPlan.add(cmIds[j]);
+			
+			secPlans.add(secPlan);
+			
+		}
+		log("SecPlans: " + secPlans + "\n");
+		System.out.println("SecPlans: " + secPlans + "\n");	//debug
+		for (Iterator iterator = secPlans.iterator(); iterator.hasNext();) {
+			List<String> plan = (List<String>) iterator.next();
+			
+			if(!plan.isEmpty()) {
+				System.out.print("SecPlan:\n");	//debug
+				Node cmNode = null;
+				for (Iterator iterator2 = plan.iterator(); iterator2.hasNext();) {
+					String string = (String) iterator2.next();
+					cmNode = this.getNodeByID(string);
+					System.out.print(cmNode.getLabel() + " -> " + cmNode.getOut().iterator().next().getTo().getLabel() + ";\n");	//debug
+	
+				}
+				System.out.print("\n");	//debug
+			}
+			
+		}
+		
+//		plot.add("NSGAII", result).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
+
+	}
+	
+	/**
+	 * Retrieve a node by its ID.
+	 * @param id
+	 * @return Node
+	 */
+	
+	private Node getNodeByID(String id) {
+		for (Iterator iterator = this.getNodes().iterator(); iterator.hasNext();) {
+			BayesianNode node = (BayesianNode) iterator.next();
+			if(node.getID().equals(id))
+				return node;				
+		}
+		return null;
 	}
 
 	/**
@@ -1673,6 +1791,48 @@ public class BayesianAttackGraph implements DecisionInterface {
 		}
 
 		return result;
+	}
+	
+	/**
+	 * Helper method to iterate over CMs to get individual costs
+	 *
+	 * @return Map of costs of each CM
+	 */
+	public Map<String,Double> getCMcosts() {
+		Map<String,Double> cmCosts = new LinkedHashMap<>();
+		
+		for (BayesianCMNode cm : this.securityControls.getCMS()) {
+//			System.out.println("MOOP " + cm.getID() + " " +  cm.getCountermeasure().getCost());
+			cmCosts.put(cm.getID(), cm.getCountermeasure().getCost());
+//			result += cm.isEnabled() ? cm.getCountermeasure().getCost() : 0;
+		}
+		
+		return cmCosts;
+	}
+	
+	/**
+	 * The expected loss/gain for every node. External nodes are set to 0 as per paper. A positive values signifies a
+	 * gain, while a negative signifies a loss.
+	 *
+	 * @return All nodes' expectedLossGain with Double[1] and without Double[0] CMs.
+	 */
+	public Map<String,double[]> getNodesLGs(Map<String, Double> exlg, Map<String, Double> exlgAfter) {
+		Map<String,double[]> nodeLG = new LinkedHashMap<>();
+		double[][] lgs = new double[exlg.size()][2];
+		String[] ids = new String[exlg.size()];
+		
+		int i = 0;
+		for (Iterator it = exlg.keySet().iterator(); it.hasNext();) {
+			String id = (String) it.next();
+			
+			ids[i] = id;
+			lgs[i][0] = exlg.get(id);
+			lgs[i][1] = exlgAfter.get(id);
+			
+			nodeLG.put(id, lgs[i]);
+			i++;
+		}
+		return nodeLG;
 	}
 
 	private Double expectedLossWeight = Double.NaN;

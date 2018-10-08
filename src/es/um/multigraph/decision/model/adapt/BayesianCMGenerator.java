@@ -93,9 +93,9 @@ public class BayesianCMGenerator {
 
 	/**
 	 * Or function for char arrays and 
-	 * @param nodesStates
-	 * @param str
-	 * @return
+	 * @param nodesStates array of initialized (all false) states
+	 * @param str the mask
+	 * @return updated nodeStates
 	 */
 	public ArrayList<Boolean> or(ArrayList<Boolean> nodesStates, char[] str) {
 		for(int j=0; j < str.length; j++) 
