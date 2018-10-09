@@ -17,8 +17,11 @@ import es.um.multigraph.event.solution.SI_SystemInformationIntegrity;
 import es.um.multigraph.event.solution.Solution;
 
 /**
+ * Automatically generate all CMs node of type
+ * SI_SystemInformationIntegrity.SI_02 (patch vuln.) and assign default values
+ * (e.g. cost TODO)
+ * 
  * @author Pavlo Burda - p.burda@tue.nl
- *
  */
 public class BayesianCMGenerator {
 
@@ -31,6 +34,9 @@ public class BayesianCMGenerator {
 
 	private Set<BayesianCMNode<Solution>> myCMNodes;
 	private ArrayList<BayesianCMEdge> myCMEdges;
+
+	private String[] cmIds;
+	private double[] cmSSCs;
 
 	public BayesianCMGenerator(Collection<? extends Node> bag) {
 		this.bag = bag;
@@ -47,7 +53,7 @@ public class BayesianCMGenerator {
 			ArrayList<String> facts = extractFacts(node.getLabel());
 			if (facts.get(0).equals(EXPLOIT_NODE)) {
 
-//				System.out.println("nodes Ids: " + node.getID());	//debug
+				// FIXME make it decent here
 				String nodeId = "p" + node.getID();
 
 				BayesianCMNode<Solution> cm = new BayesianCMNode<>(nodeId, SI_SystemInformationIntegrity.SI_02);
@@ -59,14 +65,9 @@ public class BayesianCMGenerator {
 
 				this.myCMNodes.add(cm);
 				this.myCMEdges.add(cmEdge);
-//				bag.enableCM(cm);
 
 			}
 		}
-
-//		System.out.println("CM nodes: " + this.myCMNodes);	//debug
-//		
-
 	}
 
 	/**
@@ -88,22 +89,35 @@ public class BayesianCMGenerator {
 			factList.add(string);
 
 		return factList;
-
 	}
 
 	/**
-	 * Or function for char arrays and 
+	 * Or function for char arrays and
+	 * 
 	 * @param nodesStates array of initialized (all false) states
-	 * @param str the mask
+	 * @param str         the mask
 	 * @return updated nodeStates
 	 */
 	public ArrayList<Boolean> or(ArrayList<Boolean> nodesStates, char[] str) {
-		for(int j=0; j < str.length; j++) 
-	       if(str[j] == '1' )
-	        	nodesStates.set(j, true);
+		for (int j = 0; j < str.length; j++)
+			if (str[j] == '1')
+				nodesStates.set(j, true);
 		return nodesStates;
-     }
-	
+	}
+
+	public void genSCCsArray(Collection<BayesianCMNode> cmNodes) {
+		int cmSize = cmNodes.size();
+		this.cmIds = new String[cmSize];
+		this.cmSSCs = new double[cmSize];
+		int i = 0;
+
+		for (BayesianCMNode cm : cmNodes) {
+			this.cmIds[i] = cm.getID();
+			this.cmSSCs[i] = cm.getCountermeasure().getCost();
+			i++;
+		}
+	}
+
 	public Set<BayesianCMNode<Solution>> getMyCMNodes() {
 		return this.myCMNodes;
 	}
