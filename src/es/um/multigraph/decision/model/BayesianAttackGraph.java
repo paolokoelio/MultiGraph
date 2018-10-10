@@ -20,6 +20,7 @@ import es.um.multigraph.decision.model.adapt.BayesianAdapter;
 import es.um.multigraph.decision.model.adapt.BayesianCMGenerator;
 import es.um.multigraph.decision.model.adapt.BayesianEdgeAdapted;
 import es.um.multigraph.decision.model.adapt.BayesianNodeAdapted;
+import es.um.multigraph.decision.model.moop.MOOPUtils;
 import es.um.multigraph.decision.model.moop.MOOProblem;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventStream;
@@ -351,25 +352,25 @@ public class BayesianAttackGraph implements DecisionInterface {
 
 		for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet())
 			this.addNode(entry.getValue());
-		
 
 		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet())
 			this.addEdge(entry.getValue());
 		
 		log("BAG parsed and converted\n");
 		
+		/*
+		 * Generating LGs before applying CMs, we'll need that for later
+		 */
 		Map<String, Double> exlg = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
 		this.computeUnconditionalProbability(true);
 		
-		for (BayesianNode n : this.BAG) {
+		for (BayesianNode n : this.BAG)
 			exlg.put(n.getID(),n.getExpectedLossGain());
-		}
 		
 		/*
 		 * Automatically generating CMs for compatible nodes as defined in (by me TODO)
 		 */
-		
 		BayesianCMGenerator bGen = new BayesianCMGenerator(this.getNodes());
 		bGen.generateCMs();
 		
@@ -394,26 +395,15 @@ public class BayesianAttackGraph implements DecisionInterface {
 		log("Counter Measures LCPDs updated\n");
 			
 
-		/* set dummy expected LG for SOOP ?*/
+		/* set dummy alpha & beta for SOOP */
 		this.setExpectedGainWeight(0.5);
 		this.setExpectedLossWeight(0.5);
 		
 		/* Start MOOP procedures */
 		
-		log("Starting MOOP procedures\n");
-		
 		/* Getting CM IDs and associated costs */
-		int cmSize = this.getCMNodes().size();
-		String[] cmIds = new String[cmSize];
-		double[] cmSSCs= new double[cmSize];
-		int i = 0;
-		
-		for (BayesianCMNode cm : this.getCMNodes()) {
-			cmIds[i] = cm.getID();
-			cmSSCs[i]= cm.getCountermeasure().getCost();
-			i++;
-		}
-		
+		bGen.genSCCsArray(this.getCMNodes());
+				
 		/* Computing LGs after applying the CMs */
 		Map<String, Double> exlgAfter = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
@@ -421,73 +411,61 @@ public class BayesianAttackGraph implements DecisionInterface {
 		
 		for (BayesianNode n : this.BAG) 
 			exlgAfter.put(n.getID(),n.getExpectedLossGain());
+		
+		log("Starting MOOP procedures\n");
+		
+		MOOPUtils utMoop = new MOOPUtils();
+		utMoop.setLGs(exlg);
+		utMoop.setLGsAfter(exlgAfter);
+		utMoop.genNodesLGs();
 
-//		System.out.println("Expected loss/gains before CMs " + exlg + " and after " + exlgAfter + "\n");	//debug
-		
-		
-		Map<String, double[]> lgsMap = this.getNodesLGs(exlg, exlgAfter);
-		
-		// get an array of IDs of the lgshMap
-		String[] ids = lgsMap.keySet().toArray(new String[0]);
-
-		// get an array of lgs of the lgsMap
-		double[][] lgs = lgsMap.values().toArray(new double[0][0]);
-		
+		/* Instantiate MOOP problem with one variable as binary string
+		 * that represents all the CMs in order: { cm1, cm2, cm3 } == 010, cm2 is enabled in this case.
+		 */
 		MOOProblem moop = new MOOProblem(1, 2);
 		
-		moop.setLg(lgs); moop.setScc(cmSSCs);
+		moop.setLg(utMoop.getLgs()); moop.setScc(bGen.getCmSSCs());
 		moop.setNvulns(this.getCMNodes().size()); moop.setNcms(this.getCMNodes().size());
 		log(moop.getPropsRepresentation());
 		
-		NondominatedPopulation result = new Executor().withProblem(moop).withAlgorithm("NSGAII")
-				.withProperty("withReplacement", true).withMaxEvaluations(100).distributeOnAllCores().run();
-
-		Plot plot = new Plot();
 		List<List<String>> secPlans = new ArrayList<List<String>>();
 		
-		List<String> secPlan = null;
-		char[] solString = null;
-
-		for (i = 0; i < result.size(); i++) {
-			org.moeaframework.core.Solution solution = result.get(i);
-			double[] objectives = solution.getObjectives();
-			objectives[1] = -solution.getObjective(1);
-
-			Variable sol = solution.getVariable(0);
-			
-			log("Solution " + (i + 1) + ":" + " SCC min: " + objectives[0] + " LG max: " + objectives[1] + " Binary String: " + sol + "\n");
-
-			solString = sol.toString().toCharArray();
-			secPlan = new ArrayList<>();
-			
-			for (int j = 0; j < solString.length; j++)
-				if(solString[j] == '1' )
-					secPlan.add(cmIds[j]);
-			
-			secPlans.add(secPlan);
-			
-		}
-		log("SecPlans: " + secPlans + "\n");
-		System.out.println("SecPlans: " + secPlans + "\n");	//debug
-		for (Iterator iterator = secPlans.iterator(); iterator.hasNext();) {
-			List<String> plan = (List<String>) iterator.next();
+		utMoop.setCmIds(bGen.getCmIds());
+		secPlans = utMoop.resolve(moop, "NSGAII", 100);
+		
+		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
+			this.disableCM(iter.next());
+				
+		/* Write and log CSVs with plans */
+		int j = 1;
+		List<String> rowsCSV = new ArrayList<String>();
+		for (Iterator<List<String>> iterator = secPlans.iterator(); iterator.hasNext();) {
+			List<String> plan = iterator.next();	String row;
 			
 			if(!plan.isEmpty()) {
-				System.out.print("SecPlan:\n");	//debug
-				Node cmNode = null;
-				for (Iterator iterator2 = plan.iterator(); iterator2.hasNext();) {
-					String string = (String) iterator2.next();
-					cmNode = this.getNodeByID(string);
-					System.out.print(cmNode.getLabel() + " -> " + cmNode.getOut().iterator().next().getTo().getLabel() + ";\n");	//debug
-	
+				BayesianCMNode<Solution> cmNode = null;
+				for (Iterator<String> iterator2 = plan.iterator(); iterator2.hasNext();) {
+					cmNode = (BayesianCMNode<Solution>)  this.getNodeByID(iterator2.next());
+					row = cmNode.getID() + "," + cmNode.getOut().iterator().next().getTo().getID() + "," + cmNode.getCountermeasure() + "\n";
+					log(row);	rowsCSV.add(row);
 				}
-				System.out.print("\n");	//debug
 			}
-			
+			//FIXME static var name
+			utMoop.writeCSV("SecPlan_" + j, rowsCSV);
+			j++;
 		}
-		
-//		plot.add("NSGAII", result).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
 
+		 /* Apply first secPlan*/
+		if(!secPlans.isEmpty())
+			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
+				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
+		
+//		Plot plot = new Plot();
+//		plot.add("NSGAII", moop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
+
+		
+		
+		
 	}
 	
 	/**
@@ -495,7 +473,6 @@ public class BayesianAttackGraph implements DecisionInterface {
 	 * @param id
 	 * @return Node
 	 */
-	
 	private Node getNodeByID(String id) {
 		for (Iterator iterator = this.getNodes().iterator(); iterator.hasNext();) {
 			BayesianNode node = (BayesianNode) iterator.next();
@@ -506,8 +483,8 @@ public class BayesianAttackGraph implements DecisionInterface {
 	}
 
 	/**
-	 * Automatically generates the necessary to enable and update CM nodes (set the default 
-	 * probabilities a CM gives to its sibling nodes).
+	 * Automatically generates the necessary to enable and update CM nodes (sets the default 
+	 * t-f probabilities a CM gives to its sibling nodes).
 	 * @throws SQLException
 	 */
 	private void updateCMlcpd(BayesianCMGenerator bGen) throws SQLException {
@@ -536,7 +513,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 					}
 				}
 		        
-			    /* Generate true-false combinations for every sibling node by performing OR operation against fake bit combinations and the t-f array */
+			    /* Generate true-false combinations for every sibling node by performing OR operation against string bit combinations and the t-f array */
 		        double size = siblingNodesID.size();
 		        for (int j = 0; j < Math.pow(2,size); j++) {
 			    	/* Generate " bit string" */
@@ -558,7 +535,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 //				        System.out.println(nodesStates);	//debug
 //				        System.out.println(siblingNodesID);	//debug
 			        
-			        /* Remove CM node and state */
+			        /* Remove current CM node and state */
 			        siblingNodesID.remove(siblingNodesID.size()-1);
 			        nodesStates.remove(nodesStates.size()-1);
 			        
@@ -1801,40 +1778,12 @@ public class BayesianAttackGraph implements DecisionInterface {
 	public Map<String,Double> getCMcosts() {
 		Map<String,Double> cmCosts = new LinkedHashMap<>();
 		
-		for (BayesianCMNode cm : this.securityControls.getCMS()) {
-//			System.out.println("MOOP " + cm.getID() + " " +  cm.getCountermeasure().getCost());
+		for (BayesianCMNode cm : this.securityControls.getCMS())
 			cmCosts.put(cm.getID(), cm.getCountermeasure().getCost());
-//			result += cm.isEnabled() ? cm.getCountermeasure().getCost() : 0;
-		}
 		
 		return cmCosts;
 	}
 	
-	/**
-	 * The expected loss/gain for every node. External nodes are set to 0 as per paper. A positive values signifies a
-	 * gain, while a negative signifies a loss.
-	 *
-	 * @return All nodes' expectedLossGain with Double[1] and without Double[0] CMs.
-	 */
-	public Map<String,double[]> getNodesLGs(Map<String, Double> exlg, Map<String, Double> exlgAfter) {
-		Map<String,double[]> nodeLG = new LinkedHashMap<>();
-		double[][] lgs = new double[exlg.size()][2];
-		String[] ids = new String[exlg.size()];
-		
-		int i = 0;
-		for (Iterator it = exlg.keySet().iterator(); it.hasNext();) {
-			String id = (String) it.next();
-			
-			ids[i] = id;
-			lgs[i][0] = exlg.get(id);
-			lgs[i][1] = exlgAfter.get(id);
-			
-			nodeLG.put(id, lgs[i]);
-			i++;
-		}
-		return nodeLG;
-	}
-
 	private Double expectedLossWeight = Double.NaN;
 	private Double expectedGainWeight = Double.NaN;
 
