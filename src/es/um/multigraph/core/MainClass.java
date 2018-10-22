@@ -13,6 +13,7 @@ import es.um.multigraph.decision.DecisionInterfaceImpl;
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
 import es.um.multigraph.decision.model.BayesianAttackGraph;
+import es.um.multigraph.decision.poolsappasitmoop.BayesianAttackGraphAdapted;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventListener;
 import es.um.multigraph.event.EventStream;
@@ -199,15 +200,16 @@ public class MainClass implements Runnable {
     private void configDecisionModule() {
         //addDecisionModuleToSwitcher(DecisionInterfaceImpl.class);        
         addDecisionModuleToSwitcher(BayesianAttackGraph.class);
+        addDecisionModuleToSwitcher(BayesianAttackGraphAdapted.class);
         forceDecisionModule(0);
-        this.activeDecisionModule.init(this);
+//        this.activeDecisionModule.init(this);
     }
     public void updateSelectedDecisionModule(boolean init) {
         try {
             this.activeDecisionModule = this.gui.getSelectedDecisionModule().newInstance();
             if(this.activeDecisionModule != null)
                 if(init)
-                    this.activeDecisionModule.init(this);
+//                    this.activeDecisionModule.init(this);
             forceDecisionModule(this.gui.getSelectedDecisionModulePos());
         } catch (InstantiationException | IllegalAccessException ex) {
             Logger.getLogger(MainClass.class.getName()).log(Level.SEVERE, null, ex);
@@ -228,10 +230,12 @@ public class MainClass implements Runnable {
         this.gui.delDecisionModule(toDel);
     }
     public void startDecisionModule() {
+        //FIXME I run the init() only pressing Start Decision Module
+        this.activeDecisionModule.init(this);
         this.decisionThread = new Thread(this.activeDecisionModule);
         this.decisionThread.setName("Decision Module");
         this.decisionThread.start();
-        
+
     }
     public void stopDecisionModule() {
         activeDecisionModule.stop();

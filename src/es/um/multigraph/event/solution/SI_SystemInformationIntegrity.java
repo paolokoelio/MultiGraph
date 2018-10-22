@@ -14,7 +14,7 @@ import javax.swing.DefaultListModel;
 import javax.swing.ListModel;
 
 /**
- * @see <a href="https://nvd.nist.gov/800-53/Rev4/family/System%20and%20Information%20Integrity">Access Control</a>
+ * @see <a href="https://nvd.nist.gov/800-53/Rev4/family/System%20and%20Information%20Integrity">System Integrity</a>
  * @see <a href="https://web.nvd.nist.gov/view/800-53/Rev4/home">NIST Special Publication 800-53 (Rev. 4)</a>
  * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>, updated by Pavlo Burda <a href="mailto:p.burda@tue.nl">p.burda@tue.nl</a>
  */

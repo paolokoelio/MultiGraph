@@ -1,7 +1,7 @@
 /**
  * 
  */
-package es.um.multigraph.decision.model.adapt;
+package es.um.multigraph.decision.poolsappasitmoop.adapt;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,9 +10,9 @@ import java.util.Iterator;
 import java.util.Set;
 
 import es.um.multigraph.decision.basegraph.Node;
-import es.um.multigraph.decision.model.BayesianCMEdge;
-import es.um.multigraph.decision.model.BayesianCMNode;
-import es.um.multigraph.decision.model.BayesianNode;
+import es.um.multigraph.decision.poolsappasitmoop.BayesianCMEdge;
+import es.um.multigraph.decision.poolsappasitmoop.BayesianCMNode;
+import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
 import es.um.multigraph.event.solution.SI_SystemInformationIntegrity;
 import es.um.multigraph.event.solution.Solution;
 

@@ -1,4 +1,4 @@
-package es.um.multigraph.decision.model.adapt;
+package es.um.multigraph.decision.poolsappasitmoop.adapt;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import es.um.multigraph.decision.basegraph.Node;
-import es.um.multigraph.decision.model.BayesianNode;
+import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
 
 public class BayesianAdapter implements Adapter {
 

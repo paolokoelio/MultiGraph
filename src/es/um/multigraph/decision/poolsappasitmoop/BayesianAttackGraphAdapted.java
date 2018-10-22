@@ -6,7 +6,7 @@
  * (C) 2015 - Mattia Zago
  *
  */
-package es.um.multigraph.decision.model;
+package es.um.multigraph.decision.poolsappasitmoop;
 
 import es.um.multigraph.conf.DBManager;
 import es.um.multigraph.conf.FeaturesEnum;
@@ -16,12 +16,12 @@ import es.um.multigraph.decision.DecisionInterface;
 import es.um.multigraph.decision.DecisionInterfaceImpl;
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
-import es.um.multigraph.decision.model.adapt.BayesianAdapter;
-import es.um.multigraph.decision.model.adapt.BayesianCMGenerator;
-import es.um.multigraph.decision.model.adapt.BayesianEdgeAdapted;
-import es.um.multigraph.decision.model.adapt.BayesianNodeAdapted;
-import es.um.multigraph.decision.model.moop.MOOPUtils;
-import es.um.multigraph.decision.model.moop.MOOProblem;
+import es.um.multigraph.decision.poolsappasitmoop.adapt.BayesianAdapter;
+import es.um.multigraph.decision.poolsappasitmoop.adapt.BayesianCMGenerator;
+import es.um.multigraph.decision.poolsappasitmoop.adapt.BayesianEdgeAdapted;
+import es.um.multigraph.decision.poolsappasitmoop.adapt.BayesianNodeAdapted;
+import es.um.multigraph.decision.poolsappasitmoop.moop.MOOPUtils;
+import es.um.multigraph.decision.poolsappasitmoop.moop.MOOProblem;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventStream;
 import es.um.multigraph.event.dummy.DummyEvent;
@@ -103,13 +103,14 @@ import org.moeaframework.core.Variable;
  * @see <a href=
  *      "http://dx.doi.org/10.1109/TDSC.2011.34">http://dx.doi.org/10.1109/TDSC.2011.34</a><br>
  */
-public class BayesianAttackGraph implements DecisionInterface {
+public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 	MainClass parent;
 	DBManager DB;
 	private boolean stop = false;
+	Map<String, Double> exlg;
 
-	public BayesianAttackGraph() {
+	public BayesianAttackGraphAdapted() {
 		super();
 
 		DB = new DBManager("BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
@@ -296,12 +297,12 @@ public class BayesianAttackGraph implements DecisionInterface {
 		this.parent = main;
 		log("Start default initialization\n");
 
-		initDefault();
+//		initDefault();
 		
-/*		try {
+		try {
 			initAGsim();
 		} catch (SQLException ex) {
-			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 			JOptionPane.showMessageDialog(null,
 					"" + "There was an error while performing SQL operation.\n" + "The system will shutdown now."
 							+ "\nSQL Error Code: " + ex.getSQLState() + "\n" + "Exception:\n" + ex.toString() + "\n",
@@ -311,7 +312,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 			JOptionPane.showMessageDialog(null,"There was an error during parsing operation.\n");
 			e.printStackTrace();
 			System.exit(-1);
-		}*/
+		}
 		
 
 		
@@ -329,6 +330,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		ImportAG bs;
 		this.BAG = new HashSet<>();
 
+		//extract method setFile() TODO
 
 		bs = new ImportAG();
 
@@ -336,6 +338,9 @@ public class BayesianAttackGraph implements DecisionInterface {
 		fl.readFile("files/AttackGraph.xml");
 
 		bs.setFile(fl);
+		
+		//extract method importAG() TODO
+		
 		bs.importAG();
 		ParseAG ps = new ParseAG(bs.getNodes(), bs.getEdges());
 		ps.parseAG();
@@ -358,16 +363,19 @@ public class BayesianAttackGraph implements DecisionInterface {
 		
 		log("BAG parsed and converted\n");
 		
+		//extract method popUpAlert(): " compute LCPD adn uncProb"  TODO
+		
 		/*
 		 * Generating LGs before applying CMs, we'll need that for later
 		 */
-		Map<String, Double> exlg = new LinkedHashMap<String, Double>();
+		exlg = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
 		this.computeUnconditionalProbability(true);
 		
-		for (BayesianNode n : this.BAG)
-			exlg.put(n.getID(),n.getExpectedLossGain());
+		//HEREWAS exlg preservaton before adding CMs
 		
+		
+		//extarct method genAutomCMs() TODO
 		/*
 		 * Automatically generating CMs for compatible nodes as defined in (by me TODO)
 		 */
@@ -385,20 +393,21 @@ public class BayesianAttackGraph implements DecisionInterface {
 		
 		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
 			this.enableCM(iter.next());
-		
-		
+
 		this.computeLCPD();
 		log("Counter Measures added\n");
 		  
-		updateCMlcpd(bGen);
+		this.updateCMlcpd(bGen);
 		
 		log("Counter Measures LCPDs updated\n");
 			
-
+		//end extract method
+	
 		/* set dummy alpha & beta for SOOP */
 		this.setExpectedGainWeight(0.5);
 		this.setExpectedLossWeight(0.5);
 		
+		//extarct method runMOOP() TODO
 		/* Start MOOP procedures */
 		
 		/* Getting CM IDs and associated costs */
@@ -449,7 +458,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 					log(row);	rowsCSV.add(row);
 				}
 			
-			//FIXME static var name
+			//FIXME static file name
 			utMoop.writeCSV("SecPlan_" + j, rowsCSV);
 			j++;
 		}
@@ -458,6 +467,8 @@ public class BayesianAttackGraph implements DecisionInterface {
 		if(!secPlans.isEmpty())
 			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
 				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
+		
+		//extract method showPlot() TODO
 		
 //		Plot plot = new Plot();
 //		plot.add("NSGAII", moop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
@@ -558,7 +569,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		  
 		  //reset DB
 		  try { this.setupDB(true); } catch (SQLException ex) {
-		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null,
 		  ex); JOptionPane.showMessageDialog(null, "" +
 		  "There was an error while performing SQL operation.\n" +
 		  "The system will shutdown now." + "\nSQL Error Code: " + ex.getSQLState() +
@@ -575,7 +586,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		  D.setExpectedGain(0.6);
 		  
 		  try { DB.connect(); } catch (SQLException ex) {
-		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null,
 		  ex); }
 		  
 		  BayesianEdge DB = new BayesianEdge("DB", D, B);
@@ -609,7 +620,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		  this.computeLCPD(); this.computeUnconditionalProbability(true);
 //		  this.computePosterior(true); 
 		  } catch (Exception ex) {
-		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null,
 		  ex); }
 		 
 		  //this.log("Adding CMs");
@@ -659,7 +670,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		  nodesID = new String[]{"B", "C", "M0"}; nodesState = new Boolean[]{true,
 		  true, true}; prTrue = 0.0; prFalse = 1.0; this.LCPD_SQL_updatePr(nodesID,
 		  nodesState, "A", prTrue, prFalse); } catch (SQLException ex) {
-		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null,
 		  ex); }  
 		  
 		  /*try { nodesID = new String[]{"B", "C", "M1"}; nodesState = new
@@ -699,7 +710,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		  ex); }
 		  */
 		  try { this.computeUnconditionalProbability(true); } catch (SQLException ex) {
-		  Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null,
+		  Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null,
 		  ex); }
 		 
 	}
@@ -747,7 +758,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 			this.setupDB(true);
 			this.DB.connect();
 		} catch (SQLException ex) {
-			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 			JOptionPane.showMessageDialog(null,
 					"" + "There was an error while performing SQL operation.\n" + "The system will shutdown now."
 							+ "\nSQL Error Code: " + ex.getSQLState() + "\n" + "Exception:\n" + ex.toString() + "\n",
@@ -779,7 +790,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 	}
 
 	public static void main(String[] args) {
-		BayesianAttackGraph b = new BayesianAttackGraph();
+		BayesianAttackGraphAdapted b = new BayesianAttackGraphAdapted();
 		b.init(null);
 	}
 
@@ -1036,7 +1047,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 				try {
 					this.LCPD_SQL_addRow(new String[0], new Boolean[0], n.getID(), pr, 1 - pr);
 				} catch (SQLException ex) {
-					Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+					Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 				}
 				continue;
 			}
@@ -1087,7 +1098,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 				try {
 					this.LCPD_SQL_addRow(parentID, parentStates, n.getID(), pr, 1 - pr);
 				} catch (SQLException ex) {
-					Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+					Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 				}
 
 			}
@@ -1104,7 +1115,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		try {
 			this.emptyDB();
 		} catch (SQLException ex) {
-			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		this.lcpdComputed = false;
 		resetUnconditionalPr();
@@ -1171,7 +1182,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 
 			return result;
 		} catch (SQLException ex) {
-			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 			JOptionPane.showMessageDialog(
 					null, "" + "There was an error while loading the table data\n" + "\nSQL Error Code: "
 							+ ex.getSQLState() + "\n" + "Exception:\n" + ex.toString() + "\n",
@@ -1338,6 +1349,10 @@ public class BayesianAttackGraph implements DecisionInterface {
 			computeUnconditionalProbability(n, forceRecompute);
 		}
 		unconditionalComputed = true;
+		
+		//preserve computed LGs
+		for (BayesianNode n : this.BAG)
+			this.exlg.put(n.getID(),n.getExpectedLossGain());
 	}
 
 	public boolean isUnconditionalPrComputed() {
@@ -1579,7 +1594,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 				this.LCPD_SQL_addColumn(node.getID(), "CHAR(1)", false, null);
 			}
 		} catch (SQLException ex) {
-			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		if (this.parent != null) {
 			this.parent.addNodeToGraph(node);
@@ -1716,7 +1731,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		try {
 			LCPD_SQL_updatePr(null, null, n.getID(), 1d, 0d);
 		} catch (SQLException ex) {
-			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 			log("Error while updating LCPD table during CM activation");
 		}
 	}
@@ -1727,7 +1742,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 		try {
 			LCPD_SQL_updatePr(null, null, n.getID(), 0d, 1d);
 		} catch (SQLException ex) {
-			Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 			log("Error while updating LCPD table during CM deactivation");
 		}
 	}
@@ -1890,7 +1905,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 			} catch (NumberFormatException ex) {
 				JOptionPane.showMessageDialog(null, ex.getMessage(), "Exception while computing Objective Function",
 						JOptionPane.ERROR_MESSAGE);
-				Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+				Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 				return;
 			}
 		}
@@ -1938,7 +1953,7 @@ public class BayesianAttackGraph implements DecisionInterface {
 				} catch (NumberFormatException ex) {
 					JOptionPane.showMessageDialog(null, ex.getMessage(), "Exception while computing Objective Function",
 							JOptionPane.ERROR_MESSAGE);
-					Logger.getLogger(BayesianAttackGraph.class.getName()).log(Level.SEVERE, null, ex);
+					Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 					return;
 				}
 			}
