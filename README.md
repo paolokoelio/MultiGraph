@@ -1,10 +1,21 @@
 # MultiGraph
-Software component acting as a simulator and aiming to help in the deployment of novel attack graph models. It is also intended to help comparing these novel approaches with already existing designs and implementations. It has also as an objective to determine those aspects of existing models that have not been completely defined or specified by their authors and thus may need some completion before being used in lab or real attack scenarios.  
+Software component acting as a simulator and aiming to help in the deployment of novel Attack Graph (AG) models. 
+It is intended to help comparing these novel approaches with already existing designs and implementations. 
+It has also as an objective to determine those aspects of existing models that have not been completely defined or specified by their authors and thus may need some completion before being used in lab or real attack scenarios.  
+
+### Features
+* File import from MulVAL XML files (w.r.t. specific rules file, to be uploaded here)
+* Manually redefining of the AG
+* Optimization problems solutions:
+	* Poolsappasit et al. - SOOP & MOOP
+	* Wang L. et al. - TODO
+* Interactive graph
+* Export CSV lists of optimal recommendations
 
 ### GUI 
 ![GUI](/src/es/um/multigraph/resources/images/MultiGraphScreen2.png)
 
-### AG with 3 vulnerabilities 
+### Bayesian AG with 3 vulnerabilities 
 ![Attack Graph](/src/es/um/multigraph/resources/images/MultiGraphScreen3.png)
 
 
@@ -83,7 +94,7 @@ pn15,n15,SI_02: FLAW REMEDIATION
 ```
 
 
-Ref.  
+## References   
 * M. Zago, Modeling Cyber-Threats: Adopting Bayes' principles in the Attack Graph theory, 2015  
 * Poolsappasit, N., Dewri, R., and Ray, I. Dynamic security risk management using bayesian attack graphs. IEEE Transactions on Dependable and Secure Computing 9, 1 (Jan 2012), 61–74.  
 * Wang L., Albanese M., Jajodia S., Network Hardening An Automated Approach to Improving Network Security, Springer International Publishing, Cham 2014, pp. 15-22
