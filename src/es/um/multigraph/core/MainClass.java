@@ -14,6 +14,7 @@ import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
 import es.um.multigraph.decision.model.BayesianAttackGraph;
 import es.um.multigraph.decision.poolsappasitmoop.BayesianAttackGraphAdapted;
+import es.um.multigraph.decision.lwang.AttackGraph;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventListener;
 import es.um.multigraph.event.EventStream;
@@ -201,6 +202,7 @@ public class MainClass implements Runnable {
         //addDecisionModuleToSwitcher(DecisionInterfaceImpl.class);        
         addDecisionModuleToSwitcher(BayesianAttackGraph.class);
         addDecisionModuleToSwitcher(BayesianAttackGraphAdapted.class);
+        addDecisionModuleToSwitcher(AttackGraph.class);
         forceDecisionModule(0);
 //        this.activeDecisionModule.init(this);
     }

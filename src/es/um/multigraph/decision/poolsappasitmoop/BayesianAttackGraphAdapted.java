@@ -374,7 +374,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		
 		//HEREWAS exlg preservaton before adding CMs
 		
-		
 		//extarct method genAutomCMs() TODO
 		/*
 		 * Automatically generating CMs for compatible nodes as defined in (by me TODO)
@@ -557,6 +556,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		    }
 		}
 	}	
+	
+	
 	
 	/**
 	 * Start Counter Measure example conf.
