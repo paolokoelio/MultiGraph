@@ -74,8 +74,7 @@ public class AttackGraph implements DecisionInterface {
 	}
 
 	/**
-	 * @throws ParserConfigurationException 
-	 * Start AG simulation from MulVAL import.
+	 * @throws ParserConfigurationException Start AG simulation from MulVAL import.
 	 * 
 	 * @throws
 	 */
@@ -102,13 +101,13 @@ public class AttackGraph implements DecisionInterface {
 		adapter.setMyEdges(ps.getMyEdges());
 		adapter.setMyNodes(ps.getMyNodes());
 		adapter.convertAG();
-		
+
 		Map<Integer, MyNode> myNodes = adapter.getMyNodes();
 		Map<String, MyEdge> myEdges = adapter.getMyEdges();
-		
+
 		System.out.println(myNodes);
 		System.out.println(myEdges);
-		
+
 	}
 
 	/**
@@ -151,17 +150,17 @@ public class AttackGraph implements DecisionInterface {
 		AttackGraph a = new AttackGraph();
 		a.init(null);
 	}
-	
+
 	// ========================================================================
 	// PAPER IMPL.
 	// ========================================================================
-	
+
 	private Set<MyNode> AG = new HashSet<>();
-	
+
 	// ========================================================================
 	// INHEREDITED PROP.
 	// ========================================================================
-	
+
 	@Override
 	public List<Class<? extends Event>> getRecognizedEvent() {
 		throw new UnsupportedOperationException("Not supported yet.");
@@ -271,18 +270,18 @@ public class AttackGraph implements DecisionInterface {
 
 	@Override
 	public void addNode(Node node) {
-		this.AG.add((MyNode) node);//FIXME merge the lists into AG
-		
+		this.AG.add((MyNode) node);// FIXME merge the lists into AG
+
 		if (this.parent != null)
 			this.parent.addNodeToGraph(node);
-		
+
 		this.nodes.add(node);
 	}
 
 	@Override
 	public void addEdge(Edge edge) {
 		throw new UnsupportedOperationException("Not supported yet.");
-		//FIXME
+		// FIXME
 	}
 
 	@Override
