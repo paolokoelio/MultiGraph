@@ -1,4 +1,4 @@
-package es.um.multigraph.decision.poolsappasitmoop.adapt;
+package es.um.multigraph.decision.lwang;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,116 +7,105 @@ import java.util.List;
 import java.util.Map;
 
 import es.um.multigraph.conf.MulVALPrimitives;
-import es.um.multigraph.decision.basegraph.Adapter;
 import es.um.multigraph.decision.basegraph.Node;
-import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
 
-public class BayesianAdapter implements Adapter {
+public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 
-	private Map<Integer, BayesianNodeAdapted> bayesianNodes;
-	private Map<String, BayesianEdgeAdapted> bayesianEdges;
+	private Map<Integer, MyNode> myNodes;
+	private Map<String, MyEdge> myEdges;
 //	All edges that point to an AND node
-	private Map<String, BayesianEdgeAdapted> bayesianToAndEdges;
+	private Map<String, MyEdge> myToAndEdges;
+
+	public Map<Integer, MyNode> getMyNodes() {
+		return myNodes;
+	}
+
+	public Map<String, MyEdge> getMyEdges() {
+		return myEdges;
+	}
 
 	private List<HashMap<String, String>> nodes;
 	private List<HashMap<String, String>> edges;
+
+	public void setMyEdges(List<HashMap<String, String>> myEdges) {
+		this.edges = myEdges;
+	}
+
+	public void setMyNodes(List<HashMap<String, String>> myNodes) {
+		this.nodes = myNodes;
+	}
 
 	public static final boolean DECOMPOSITION_AND = true;
 	public static final boolean DECOMPOSITION_OR = false;
 	public static final String TYPE_AND = "AND";
 	public static final String TYPE_OR = "OR";
-
-	public static final double DUMMY_EXPECTED_GAIN = 0.5;
-	public static final double DUMMY_EDGE_PROB = 0.6;
-
-//	private static final Double DEFAULT_UNC_PR = 1.0;
-	private static final Double DEFAULT_PRIOR_PR = 1.0;
-
 	public static final String PREFIX_ID = "n";
-	// types AND, OR and LEAF
 
-	public BayesianAdapter() {
-		this.bayesianNodes = new HashMap<Integer, BayesianNodeAdapted>();
-		this.bayesianEdges = new HashMap<String, BayesianEdgeAdapted>();
-		this.bayesianToAndEdges = new HashMap<String, BayesianEdgeAdapted>();
+	public Adapter() {
+		this.myNodes = new HashMap<Integer, MyNode>();
+		this.myEdges = new HashMap<String, MyEdge>();
+		this.myToAndEdges = new HashMap<String, MyEdge>();
 	}
 
 	@Override
 	public void convertAG() {
-		
 		convertNodes();
 		convertEdges();
 		adaptAG();
 	}
 
-	/**
-	 * Instantiate and populate BayesianNodesAdapted (see doc
-	 * {@link} BayesianNodesAdapted}.
-	 */
 	public void convertNodes() {
 		for (Iterator<HashMap<String, String>> iter = this.nodes.iterator(); iter.hasNext();) {
 			HashMap<String, String> tmpNode = iter.next();
 
-			// TODO set prioProb to metric somehow in the future
-			// the Node ID is added a string to relief SQL problem in adding new columns
-			// named with an integer (TODO integrate uuids)
-			BayesianNodeAdapted bsNode = new BayesianNodeAdapted(prependPrefix(PREFIX_ID, tmpNode.get("id")),
-					Double.NaN);
-			bsNode.setType(tmpNode.get("type"));
-			bsNode.setLabel(tmpNode.get("fact"));
+			MyNode node = new MyNode(prependPrefix(PREFIX_ID, tmpNode.get("id")));
+			node.setTypeMulval(tmpNode.get("type"));
+			node.setLabel(tmpNode.get("fact"));
 
-			bsNode.setExpectedGain(DUMMY_EXPECTED_GAIN);
-//			if (tmpNode.get("type").equals("LEAF")) // TODO set static
-//				bsNode.setPriorPr(DEFAULT_PRIOR_PR);
-
-//			bsNode.setUnconditionalPr(DEFAULT_UNC_PR);
-			this.bayesianNodes.put(atoi(tmpNode.get("id")), bsNode);
+			this.myNodes.put(atoi(tmpNode.get("id")), node);
 		}
 	}
 
-	/**
-	 * Instantiate and populate BayseianEdges
-	 */
 	public void convertEdges() {
 		for (Iterator<HashMap<String, String>> iter = this.edges.iterator(); iter.hasNext();) {
 			HashMap<String, String> tmpEdge = iter.next();
 
 			// here src and dst are inverted, because in mulVAL output they seem actually
-			// inveretd
-			BayesianNodeAdapted dst = this.bayesianNodes.get(atoi(tmpEdge.get("src")));
-			BayesianNodeAdapted src = this.bayesianNodes.get(atoi(tmpEdge.get("dst")));
+			// inverted
+			MyNode dst = this.myNodes.get(atoi(tmpEdge.get("src")));
+			MyNode src = this.myNodes.get(atoi(tmpEdge.get("dst")));
 
 			String edgeId = src.getID() + "." + dst.getID();
 
 			// decomposition OR is by default
 			boolean flagDecomp = DECOMPOSITION_OR;
 
-			BayesianEdgeAdapted bsEdge = new BayesianEdgeAdapted(edgeId, src, dst);
+			MyEdge edge = new MyEdge(edgeId, src, dst);
 
-			if (dst.getType().equals(TYPE_AND)) {
+			if (dst.getTypeMulval().equals(TYPE_AND)) {
 				flagDecomp = DECOMPOSITION_AND;
-				this.bayesianToAndEdges.put(bsEdge.getID(), bsEdge);
+				this.myToAndEdges.put(edge.getID(), edge);
 			}
 
-			bsEdge.setDecomposition(flagDecomp);
+			edge.setDecomposition(flagDecomp);
 
-			this.bayesianEdges.put(bsEdge.getID(), bsEdge);
+			this.myEdges.put(edge.getID(), edge);
 		}
 	}
 
 	/**
 	 * Remove the AND nodes from MulVAL rules, transfer this logic to the edges and
-	 * implement the pre-condition, vulnerability and post-condition attributes as
-	 * per Poolsapapsit et al.
+	 * implement the condition and exploit nodes as per L.Wang et al. (similar to
+	 * Poolsapapsit et al.)
 	 */
 	private void adaptAG() {
 		List<String> purgeEdgeList = new ArrayList<String>();
 		List<String> purgeNodeList = new ArrayList<String>();
-		Map<String, BayesianEdgeAdapted> bufferUpdatedEdges = new HashMap<String, BayesianEdgeAdapted>();
+		Map<String, MyEdge> bufferUpdatedEdges = new HashMap<String, MyEdge>();
 		Node exploitNode = null;
 
-		for (Iterator<String> iter = this.bayesianToAndEdges.keySet().iterator(); iter.hasNext();) {
-			BayesianEdgeAdapted toAndEdge = this.bayesianToAndEdges.get(iter.next());
+		for (Iterator<String> iter = this.myToAndEdges.keySet().iterator(); iter.hasNext();) {
+			MyEdge toAndEdge = this.myToAndEdges.get(iter.next());
 
 			ArrayList<String> facts = extractFacts(toAndEdge.getFrom().getLabel());
 
@@ -128,8 +117,8 @@ public class BayesianAdapter implements Adapter {
 			if (exploitNode != null) {
 
 //				First, re-point all siblings of expolitNode to him
-				for (Iterator<String> iter2 = this.bayesianEdges.keySet().iterator(); iter2.hasNext();) {
-					BayesianEdgeAdapted edge = this.bayesianEdges.get(iter2.next());
+				for (Iterator<String> iter2 = this.myEdges.keySet().iterator(); iter2.hasNext();) {
+					MyEdge edge = this.myEdges.get(iter2.next());
 
 //					if the edges toAnd and edge match the AND node and the toAnd.getFrom()
 //					is an exploitNode pointing to that AND node and the edge.getFrom() _is not_ the exploitNode
@@ -140,22 +129,16 @@ public class BayesianAdapter implements Adapter {
 //						then point all the other edges pointing to that common AND to the exploitNode
 						edge.setTo(exploitNode);
 
-						// set the edge CVSS-based probability, we set the prob. to both in and out
-						// edges of the vulnerability attribute
-						// because we don't know exactly what is the edge prob of an edge pointing to
-						// the vulnerability attribute
-						edge.setOverridePrActivable(0.01 * atoi(facts.get(3)));
-
 						purgeEdgeList.add(edge.getID());
 						edge.setID(edge.getFrom().getID() + "." + exploitNode.getID());
 						bufferUpdatedEdges.put(edge.getID(), edge);
 					}
 
-				} // end of first for over bayesianToAndEdges
+				} // end of first for over myToAndEdges
 
 //				Second, re-point the expolitNode to what its dst AND node is pointing to
-				for (Iterator<String> iter2 = this.bayesianEdges.keySet().iterator(); iter2.hasNext();) {
-					BayesianEdgeAdapted edge = this.bayesianEdges.get(iter2.next());
+				for (Iterator<String> iter2 = this.myEdges.keySet().iterator(); iter2.hasNext();) {
+					MyEdge edge = this.myEdges.get(iter2.next());
 
 //					if the edges toAnd and edge match the AND node and the toAnd.getFrom()
 //					is an exploitNode pointing to that AND node
@@ -165,12 +148,6 @@ public class BayesianAdapter implements Adapter {
 //						Third, remove that AND node
 						purgeNodeList.add(toAndEdge.getTo().getID());
 						toAndEdge.setTo(edge.getTo());
-
-						// set the edge CVSS-based probability, we set the prob. to both in and out
-						// edges of the vulnerability attribute
-						// because we don't know exactly what is the edge prob of an edge pointing to
-						// the vulnerability attribute
-						toAndEdge.setOverridePrActivable(0.01 * atoi(facts.get(3)));
 
 						// set the decomposition to OR for terminal incoming edges/different exploit
 						// nodes
@@ -182,24 +159,18 @@ public class BayesianAdapter implements Adapter {
 						bufferUpdatedEdges.put(toAndEdge.getID(), toAndEdge);
 					}
 
-					// set priorPr to leaf nodes explicitly excluding the exploit nodes (vulExists
-					// type)
-					if (edge.getFrom().getIn().isEmpty()
-							& !(extractFacts(edge.getFrom().getLabel()).get(0).equals(MulVALPrimitives.VULN.getValue())))
-						((BayesianNode) edge.getFrom()).setPriorPr(DEFAULT_PRIOR_PR);
-
 				} // end of second for over bayesianToAndEdges
 
 			} // end if(exploitNode != null)
 		}
 
 		for (Iterator<String> iter = purgeEdgeList.iterator(); iter.hasNext();)
-			this.bayesianEdges.remove(iter.next());
+			this.myEdges.remove(iter.next());
 
 		for (Iterator<String> iter = purgeNodeList.iterator(); iter.hasNext();)
-			this.bayesianNodes.remove(atoi(removePrefix(iter.next())));
+			this.myNodes.remove(atoi(removePrefix(iter.next())));
 
-		this.bayesianEdges.putAll(bufferUpdatedEdges);
+		this.myEdges.putAll(bufferUpdatedEdges);
 	}
 
 	/**
@@ -224,8 +195,8 @@ public class BayesianAdapter implements Adapter {
 	}
 
 	/**
-	 * Prepends the a string identifier "node" to the ID (because of column creation
-	 * error in SQL instruction
+	 * Prepends the a string identifier "node" to the ID (because of consistency
+	 * with Poolsappasit method) Not needed for real.
 	 */
 	private String prependPrefix(String s, String n) {
 		return s + n;
@@ -236,30 +207,6 @@ public class BayesianAdapter implements Adapter {
 	 */
 	private String removePrefix(String s) {
 		return s.replaceFirst(PREFIX_ID, "");
-	}
-
-	public Map<Integer, BayesianNodeAdapted> getBAG() {
-		return bayesianNodes;
-	}
-
-	public void setBAG(Map<Integer, BayesianNodeAdapted> bAG) {
-		bayesianNodes = bAG;
-	}
-
-	public Map<Integer, BayesianNodeAdapted> getMyBayesianNodes() {
-		return this.bayesianNodes;
-	}
-
-	public void setMyNodes(List<HashMap<String, String>> myNodes) {
-		this.nodes = myNodes;
-	}
-
-	public Map<String, BayesianEdgeAdapted> getMyBayesianEdges() {
-		return this.bayesianEdges;
-	}
-
-	public void setMyEdges(List<HashMap<String, String>> myEdges) {
-		this.edges = myEdges;
 	}
 
 	private int atoi(String tmp) {

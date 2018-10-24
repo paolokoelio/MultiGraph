@@ -26,237 +26,242 @@ import org.junit.Test;
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.JDialogNode;
 import es.um.multigraph.decision.basegraph.Node;
-import es.um.multigraph.decision.model.BayesianJDialogNode;
 import es.um.multigraph.event.solution.Solution;
 import junit.framework.TestCase;
 
 /**
- * According to the paper this class would represent the node in the attack
- * graph. It merges the attribute-template, state and graph navigation.
+ * According to the paper of L.Wang et al. this class represents a node in the
+ * attack graph. It can be an EXPLOIT node or a security (pre/post) CONDITION
+ * type node. A STATE variable says if it' s enabled or not.
+ * 
+ * @author Pavlo Burda
+ * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>
  */
 public class MyNode extends Node {
 
-    private boolean state = MyNode.STATE_FALSE;
+	private boolean state = MyNode.STATE_FALSE;
+	//node type L.Wang et al. definition: EXPLOIT or CONTIDION
+	private boolean type = MyNode.EXPLOIT;
+	//node type MulVAL definition: AND, OR, LEAF
+	private String typeMulval;
 
-    public void setState(boolean state) {
-        this.state = state;
-    }
+	public void setState(boolean state) {
+		this.state = state;
+	}
 
-    public boolean getState() {
-        return this.state;
-    }
+	public boolean getState() {
+		return this.state;
+	}
+	
+	public String getTypeMulval() {
+		return typeMulval;
+	}
 
-    public static final boolean STATE_TRUE = true;
-    public static final boolean STATE_FALSE = false;
+	public void setTypeMulval(String type) {
+		this.typeMulval = type;
+	}
 
-    /**
-     * FIXME
-     *
-     * @param ID
-     * @param priorProbability Null iff state is not external.
-     */
-    public MyNode(String ID) {
-        super(ID);
-    }
+	private String sourceHost;
+	private String intermediateHost;
+	private String destHost;
 
-    @Override
-    public String getFullRepresentationAsString(boolean printEdges) {
-        String result = ""
-                + "Bayesian Node (ID: " + this.ID + "):"
-                + "\n\tClass:\t" + this.getClass()
-                + "\n\tLabel:\t" + this.label
-                + "\n\tPrior: " + String.format("%.2f", this.getPriorPr())
-                + "\n\tPosterior: " + String.format("%.2f", this.getPosteriorPr())
-                + "\n\tUnconditional: " + String.format("%.2f", this.getUnconditionalPr())
-                + "\n\tExpected Loss: " + String.format("%.2f", this.getExpectedLoss())
-                + "\n\tExpected Gain: " + String.format("%.2f", this.getExpectedGain())
-                + "";
+	public String getSourceHost() {
+		return sourceHost;
+	}
 
-        if (printEdges) {
-            result += "\n\tOut Edges:";
-            for (Edge e : this.getOut()) {
-                result += "\n\t\t" + e.getFullRepresentationAsString();
-            }
-            result += "\n\tIn Edges:";
-            for (Edge e : this.getIn()) {
-                result += "\n\t\t" + e.getFullRepresentationAsString();
-            }
-        }
+	public void setSourceHost(String sourceHost) {
+		this.sourceHost = sourceHost;
+	}
 
-        return result;
-    }
+	public String getIntermediateHost() {
+		if (type)
+			return intermediateHost;
+		return null;
+	}
 
-    @Override
-    public String getLabelGraph() {
-        String l = this.getLabel();
-        l += "\nPrior: " + String.format("%.2f", this.getPriorPr());
-        l += "\nPosterior: " + String.format("%.2f", this.getPosteriorPr());
-        l += "\nUnconditional: " + String.format("%.2f", this.getUnconditionalPr());
-        return l;
-    }
+	public void setIntermediateHost(String intermediateHost) {
+		if (type)
+			this.intermediateHost = intermediateHost;
+	}
 
-    //========================================================================
-    // PROBABILITIES
-    //========================================================================
-    //==== UNCONDITIONAL =====================================================
-    private Double unconditionalPr = Double.NaN;
+	public String getDestHost() {
+		return destHost;
+	}
 
-    public Double getUnconditionalPr() {
-        return this.unconditionalPr;
-    }
+	public void setDestHost(String destHost) {
+		this.destHost = destHost;
+	}
 
-    public void setUnconditionalPr(Double pr) {
-        this.unconditionalPr = pr;
-    }
+	public static final boolean STATE_TRUE = true;
+	public static final boolean STATE_FALSE = false;
+	public static final boolean EXPLOIT = true;
+	public static final boolean CONDITION = false;
 
-    public boolean hasUnconditionalPr() {
-        return this.unconditionalPr != Double.NaN;
-    }
+	/**
+	 *
+	 * @param ID.
+	 */
+	public MyNode(String ID) {
+		super(ID);
+		this.sourceHost = null;
+		this.destHost = null;
+		this.intermediateHost = null;
+	}
+	
+	/**
+	 *
+	 * @param ID.
+	 */
+	public MyNode(String ID, String sourceHost, String intermediateHost, String destHost) {
+		super(ID);
+		this.sourceHost = sourceHost;
+		this.destHost = destHost;
+		this.intermediateHost = intermediateHost;
+	}
 
-    //==== PRIOR =============================================================
-    private Double fixedPriorPr = Double.NaN;
+	@Override
+	public String getFullRepresentationAsString(boolean printEdges) {
+		String result = "" + "Node (ID: " + this.ID + "):" + "\n\tClass:\t" + this.getClass() + "\n\tLabel:\t"
+				+ this.label + "\n\tType: " + this.type + "\n\tState: " + this.state + "\n\tSource host: " + this.sourceHost
+				+ "\n\tIntermediate host: " + this.intermediateHost + "\n\tDest host: " + this.destHost
+				+ "\n\tExpected Loss: " + String.format("%.2f", this.getExpectedLoss()) + "\n\tExpected Gain: "
+				+ String.format("%.2f", this.getExpectedGain()) + "";
 
-    public Double getPriorPr() {
-        return this.fixedPriorPr;
-    }
+		if (printEdges) {
+			result += "\n\tOut Edges:";
+			for (Edge e : this.getOut()) {
+				result += "\n\t\t" + e.getFullRepresentationAsString();
+			}
+			result += "\n\tIn Edges:";
+			for (Edge e : this.getIn()) {
+				result += "\n\t\t" + e.getFullRepresentationAsString();
+			}
+		}
 
-    public void setPriorPr(Double pr) {
-        this.fixedPriorPr = pr;
-    }
+		return result;
+	}
 
-    public boolean hasFixedPriorPr() {
-        return this.fixedPriorPr != Double.NaN;
-    }
+	@Override
+	public String getLabelGraph() {
+		String l = this.getLabel();
+		l += " " + this.getID();
+		return l;
+	}
 
-    @Test
-    public void assertExternalNodeIfHasFixedPriorPr() {
-        if (this.hasFixedPriorPr()) {
-            TestCase.assertEquals(isExternal(), true);
-        }
-    }
+//    @Test
+//    public void assertExternalNodeIfHasFixedPriorPr() {
+//        if (this.hasFixedPriorPr()) {
+//            TestCase.assertEquals(isExternal(), true);
+//        }
+//    }
 
-    //==== POSTERIOR =========================================================
-    Double posteriorPr = Double.NaN;
+//    @Test
+//    public void assertStateTrueIfHasPosteriorPr() {
+//        if (this.hasPosteriorPr()) {
+//            TestCase.assertEquals(state, true);
+//        }
+//    }
 
-    public Double getPosteriorPr() {
-        return this.posteriorPr;
-    }
+	// ========================================================================
+	// STRUCTURAL PROP.
+	// ========================================================================
+	private Set<MyEdge> out = new HashSet<>();
+	private Set<MyEdge> in = new HashSet<>();
+	private Set<MyNode> cachedParent = new HashSet<>();
 
-    public void setPosteriorPr(Double pr) {
-        this.posteriorPr = pr;
-    }
+	private boolean parentDecomposition = MyEdge.DECOMPOSITION_OR;
 
-    public boolean hasPosteriorPr() {
-        return this.posteriorPr != Double.NaN;
-    }
+	public boolean getParentDecomposition() {
+		return parentDecomposition;
+	}
 
-    @Test
-    public void assertStateTrueIfHasPosteriorPr() {
-        if (this.hasPosteriorPr()) {
-            TestCase.assertEquals(state, true);
-        }
-    }
+	public void setParentDecomposition(boolean parentDecomposition) {
+		this.parentDecomposition = parentDecomposition;
+	}
 
-    //========================================================================
-    // STRUCTURAL PROP.
-    //========================================================================
-    private Set<MyEdge> out = new HashSet<>();
-    private Set<MyEdge> in = new HashSet<>();
-    private Set<MyNode> cachedParent = new HashSet<>();
+	public Set<MyNode> getAllAncestor() {
+		Set<MyNode> result = new HashSet<>();
+		for (Iterator<Edge> it = this.getIn().iterator(); it.hasNext();) {
+			MyNode tmp = (MyNode) it.next().getFrom();
+			result.add(tmp);
+			result.addAll(tmp.getAllAncestor());
+		}
 
-    private boolean parentDecomposition = MyEdge.DECOMPOSITION_OR;
+		return result;
+	}
 
-    public boolean getParentDecomposition() {
-        return parentDecomposition;
-    }
+	public static JPanel getJPanel(MyNode node) {
+		JPanel result = new JPanel();
+		Field[] ff = node.getClass().getFields();
+		result.setLayout(new GridLayout(ff.length, 2));
 
-    public void setParentDecomposition(boolean parentDecomposition) {
-        this.parentDecomposition = parentDecomposition;
-    }
+		result.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.fill = GridBagConstraints.HORIZONTAL;
 
-    public Set<MyNode> getAllAncestor() {
-        Set<MyNode> result = new HashSet<>();
-        for (Iterator<Edge> it = this.getIn().iterator(); it.hasNext();) {
-            MyNode tmp = (MyNode) it.next().getFrom();
-            result.add(tmp);
-            result.addAll(tmp.getAllAncestor());
-        }
+		int i = 0;
+		for (Field f : ff) {
+			if (String.class.isAssignableFrom(f.getType()) || Double.class.isAssignableFrom(f.getType())) {
+				c.gridx = i;
+				c.gridy = 0;
+				result.add(new JLabel(f.getName()), c);
+				c.gridx = i++;
+				c.gridy = 1;
+				try {
+					result.add(new JLabel(f.get(node).toString()), c);
+				} catch (IllegalArgumentException | IllegalAccessException ex) {
+					result.add(new JLabel(""), c);
+					Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
+		}
+		return result;
+	}
 
-        return result;
-    }
+	// ========================================================================
+	// COUNTERMEASURE TODO
+	// ========================================================================
+	Set<Solution> countermeasures = new HashSet<>();
 
-    public static JPanel getJPanel(MyNode node) {
-        JPanel result = new JPanel();
-        Field[] ff = node.getClass().getFields();
-        result.setLayout(new GridLayout(ff.length, 2));
+	public Set<Solution> getCountermeasures() {
+		return countermeasures;
+	}
 
-        result.setLayout(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.HORIZONTAL;
+	public void setCountermeasures(Set<Solution> countermeasures) {
+		this.countermeasures = countermeasures;
+	}
 
-        int i = 0;
-        for (Field f : ff) {
-            if (String.class.isAssignableFrom(f.getType()) || Double.class.isAssignableFrom(f.getType())) {
-                c.gridx = i;
-                c.gridy = 0;
-                result.add(new JLabel(f.getName()), c);
-                c.gridx = i++;
-                c.gridy = 1;
-                try {
-                    result.add(new JLabel(f.get(node).toString()), c);
-                } catch (IllegalArgumentException | IllegalAccessException ex) {
-                    result.add(new JLabel(""), c);
-                    Logger.getLogger(Node.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }
-        return result;
-    }
+	private Double expectedLoss = 1d;
+	private Double expectedGain = 0d;
 
-    //========================================================================
-    // COUNTERMEASURE
-    //========================================================================    
-    Set<Solution> countermeasures = new HashSet<>();
+	public Double getExpectedLoss() {
+		return expectedLoss;
+	}
 
-    public Set<Solution> getCountermeasures() {
-        return countermeasures;
-    }
+	public void setExpectedLoss(Double expectedLoss) {
+		this.expectedLoss = expectedLoss;
+	}
 
-    public void setCountermeasures(Set<Solution> countermeasures) {
-        this.countermeasures = countermeasures;
-    }
+	public Double getExpectedGain() {
+		return expectedGain;
+	}
 
-    private Double expectedLoss = 1d;
-    private Double expectedGain = 0d;
+	public void setExpectedGain(Double expectedGain) {
+		this.expectedGain = expectedGain;
+	}
 
-    public Double getExpectedLoss() {
-        return expectedLoss;
-    }
+//    public Double getExpectedLossGain() {
+//        if (this.isExternal()) {
+//            return 0d;
+//        }
+//        
+//        Double GainFact = (1 - this.getUnconditionalPr()) * this.getExpectedGain();
+//        Double LossFact = this.getUnconditionalPr() * this.getExpectedLoss();
+//        return GainFact - LossFact;
+//    }
 
-    public void setExpectedLoss(Double expectedLoss) {
-        this.expectedLoss = expectedLoss;
-    }
-
-    public Double getExpectedGain() {
-        return expectedGain;
-    }
-
-    public void setExpectedGain(Double expectedGain) {
-        this.expectedGain = expectedGain;
-    }
-
-    public Double getExpectedLossGain() {
-        if (this.isExternal()) {
-            return 0d;
-        }
-        
-        Double GainFact = (1 - this.getUnconditionalPr()) * this.getExpectedGain();
-        Double LossFact = this.getUnconditionalPr() * this.getExpectedLoss();
-        return GainFact - LossFact;
-    }
-
-    public static JDialogNode getJDialog() {
-        return new BayesianJDialogNode(null, true);
-    }
+	public static JDialogNode getJDialog() {
+		return new JDialogNode(null, true, null, null);
+	}
 
 }

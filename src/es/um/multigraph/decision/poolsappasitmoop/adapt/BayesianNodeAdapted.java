@@ -4,7 +4,7 @@ import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
 
 /**
  * Adding a type attribute to handle decomposition conversion from MulVAL
- * representation. THe types are: AND - this kind of node is deleted and its src
+ * representation. The types are: AND - this kind of node is deleted and its src
  * nodes linked to its dst node, the label gets lost for now. OR - equivalent to
  * OR decomposition LEAF - initial conditions
  */

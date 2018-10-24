@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import es.um.multigraph.conf.MulVALPrimitives;
 import es.um.multigraph.decision.basegraph.Node;
 import es.um.multigraph.decision.model.BayesianCMEdge;
 import es.um.multigraph.decision.model.BayesianCMNode;
@@ -26,7 +27,7 @@ import es.um.multigraph.event.solution.Solution;
 public class BayesianCMGenerator {
 
 	private Collection<? extends Node> bag;
-	private static final String EXPLOIT_NODE = "vulExists";
+//	private static final String EXPLOIT_NODE = "vulExists";
 	private static final String CM_NODE = "pn";
 	private static final double DEFAULT_COST = 0.5;
 	private static final double DEFAULT_prFalse = 1.0;
@@ -51,9 +52,9 @@ public class BayesianCMGenerator {
 			BayesianNode node = (BayesianNode) iterator.next();
 
 			ArrayList<String> facts = extractFacts(node.getLabel());
-			if (facts.get(0).equals(EXPLOIT_NODE)) {
+			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue())) {
 
-				// FIXME make it decent here
+				// FIXME generate unique ID or some clever system
 				String nodeId = "p" + node.getID();
 
 				BayesianCMNode<Solution> cm = new BayesianCMNode<>(nodeId, SI_SystemInformationIntegrity.SI_02);
@@ -136,10 +137,6 @@ public class BayesianCMGenerator {
 
 	public ArrayList<BayesianCMEdge> getMyCMEdges() {
 		return this.myCMEdges;
-	}
-
-	public static String getExploitNode() {
-		return EXPLOIT_NODE;
 	}
 
 	public static String getCmNode() {

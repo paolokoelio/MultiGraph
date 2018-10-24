@@ -203,7 +203,7 @@ public class MainClass implements Runnable {
         addDecisionModuleToSwitcher(BayesianAttackGraph.class);
         addDecisionModuleToSwitcher(BayesianAttackGraphAdapted.class);
         addDecisionModuleToSwitcher(AttackGraph.class);
-        forceDecisionModule(0);
+        forceDecisionModule(1);
 //        this.activeDecisionModule.init(this);
     }
     public void updateSelectedDecisionModule(boolean init) {
@@ -232,8 +232,7 @@ public class MainClass implements Runnable {
         this.gui.delDecisionModule(toDel);
     }
     public void startDecisionModule() {
-        //FIXME I run the init() only pressing Start Decision Module
-        this.activeDecisionModule.init(this);
+        this.activeDecisionModule.init(this); //FIXME I run the init() only pressing Start Decision Module
         this.decisionThread = new Thread(this.activeDecisionModule);
         this.decisionThread.setName("Decision Module");
         this.decisionThread.start();
@@ -285,7 +284,7 @@ public class MainClass implements Runnable {
         this.guiThread = new Thread(gui);
         this.guiThread.setName("GUI");
         
-        // config default decision module
+        // config default decision module TODO check this out
         this.activeDecisionModule = new BayesianAttackGraph();
         this.configDecisionModule();
         

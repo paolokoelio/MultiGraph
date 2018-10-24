@@ -13,6 +13,7 @@ import es.um.multigraph.decision.basegraph.Edge;
 /**
  *
  * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>
+ * @author Pavlo Burda
  * @param <N> Node type
  */
 public class MyEdge extends Edge {
@@ -21,7 +22,6 @@ public class MyEdge extends Edge {
 	public static final boolean DECOMPOSITION_AND = true;
 	public static final boolean DECOMPOSITION_OR = false;
 
-	
 	public MyEdge(String ID, MyNode from, MyNode to) {
 		super(ID, from, to);
 
