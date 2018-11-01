@@ -11,6 +11,7 @@ import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
 import java.awt.Component;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import javax.swing.JFrame;
 
@@ -163,6 +164,13 @@ public class GraphView<N extends Node, E extends Edge<N>> {
             //Removes the edge
             graph.removeCells(cells);
         }
+    }
+    
+    public void cleanGraph() {
+    	for (Iterator<N> iterator = this.nodes.keySet().iterator(); iterator.hasNext();)
+    		this.removeNode(iterator.next());
+    	for (Iterator<E> iterator = this.edges.keySet().iterator(); iterator.hasNext();)
+    		this.removeEdge(iterator.next());
     }
 
 }

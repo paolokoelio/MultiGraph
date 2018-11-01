@@ -58,9 +58,20 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 		for (Iterator<HashMap<String, String>> iter = this.nodes.iterator(); iter.hasNext();) {
 			HashMap<String, String> tmpNode = iter.next();
 
+			ArrayList<String> facts = extractFacts(tmpNode.get("fact"));
+
+			
 			MyNode node = new MyNode(prependPrefix(PREFIX_ID, tmpNode.get("id")));
 			node.setTypeMulval(tmpNode.get("type"));
 			node.setLabel(tmpNode.get("fact"));
+			
+			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
+				node.setType(true);
+			else
+				node.setType(false);
+			
+			//default state for an active node => true
+			node.setState(true);
 
 			this.myNodes.put(atoi(tmpNode.get("id")), node);
 		}

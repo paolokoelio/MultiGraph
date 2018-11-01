@@ -21,28 +21,26 @@ import java.util.logging.Logger;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import org.junit.Test;
-
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.JDialogNode;
 import es.um.multigraph.decision.basegraph.Node;
 import es.um.multigraph.event.solution.Solution;
-import junit.framework.TestCase;
 
 /**
  * According to the paper of L.Wang et al. this class represents a node in the
  * attack graph. It can be an EXPLOIT node or a security (pre/post) CONDITION
- * type node. A STATE variable says if it' s enabled or not.
+ * type node. A STATE variable says if it's enabled or not.
  * 
- * @author Pavlo Burda
+ * @author Pavlo Burda <a href="mailto:p.burda@tue.nl">p.burda@tue.nl</a>
  * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>
  */
 public class MyNode extends Node {
 
-	private boolean state = MyNode.STATE_FALSE;
-	//node type L.Wang et al. definition: EXPLOIT or CONTIDION
+	// node is active or not?
+	public boolean state = MyNode.STATE_TRUE;
+	// node type L.Wang et al. definition: EXPLOIT or CONTIDION
 	private boolean type = MyNode.EXPLOIT;
-	//node type MulVAL definition: AND, OR, LEAF
+	// node type MulVAL definition: AND, OR, LEAF
 	private String typeMulval;
 
 	public void setState(boolean state) {
@@ -52,7 +50,7 @@ public class MyNode extends Node {
 	public boolean getState() {
 		return this.state;
 	}
-	
+
 	public String getTypeMulval() {
 		return typeMulval;
 	}
@@ -61,6 +59,7 @@ public class MyNode extends Node {
 		this.typeMulval = type;
 	}
 
+	// TODO elaborate on this if it' s reallly needed
 	private String sourceHost;
 	private String intermediateHost;
 	private String destHost;
@@ -97,6 +96,17 @@ public class MyNode extends Node {
 	public static final boolean EXPLOIT = true;
 	public static final boolean CONDITION = false;
 
+	public String getType() {
+		if (this.type)
+			return "exploit";
+		else
+			return "condition";
+	}
+
+	public void setType(boolean type) {
+		this.type = type;
+	}
+
 	/**
 	 *
 	 * @param ID.
@@ -107,7 +117,7 @@ public class MyNode extends Node {
 		this.destHost = null;
 		this.intermediateHost = null;
 	}
-	
+
 	/**
 	 *
 	 * @param ID.
@@ -122,10 +132,10 @@ public class MyNode extends Node {
 	@Override
 	public String getFullRepresentationAsString(boolean printEdges) {
 		String result = "" + "Node (ID: " + this.ID + "):" + "\n\tClass:\t" + this.getClass() + "\n\tLabel:\t"
-				+ this.label + "\n\tType: " + this.type + "\n\tState: " + this.state + "\n\tSource host: " + this.sourceHost
-				+ "\n\tIntermediate host: " + this.intermediateHost + "\n\tDest host: " + this.destHost
-				+ "\n\tExpected Loss: " + String.format("%.2f", this.getExpectedLoss()) + "\n\tExpected Gain: "
-				+ String.format("%.2f", this.getExpectedGain()) + "";
+				+ this.label + "\n\tType: " + this.type + "\n\tState: " + this.state + "\n\tSource host: "
+				+ this.sourceHost + "\n\tIntermediate host: " + this.intermediateHost + "\n\tDest host: "
+				+ this.destHost + "\n\tExpected Loss: " + String.format("%.2f", this.getExpectedLoss())
+				+ "\n\tExpected Gain: " + String.format("%.2f", this.getExpectedGain()) + "";
 
 		if (printEdges) {
 			result += "\n\tOut Edges:";
@@ -143,8 +153,8 @@ public class MyNode extends Node {
 
 	@Override
 	public String getLabelGraph() {
-		String l = this.getLabel();
-		l += " " + this.getID();
+		String l = "";
+		l += this.getID() + "\n" + this.getLabel();
 		return l;
 	}
 
@@ -166,8 +176,8 @@ public class MyNode extends Node {
 	// STRUCTURAL PROP.
 	// ========================================================================
 	private Set<MyEdge> out = new HashSet<>();
-	private Set<MyEdge> in = new HashSet<>();
-	private Set<MyNode> cachedParent = new HashSet<>();
+	private Set<Edge> in = new HashSet<>();
+	private Set<Node> cachedParent = new HashSet<>();
 
 	private boolean parentDecomposition = MyEdge.DECOMPOSITION_OR;
 
@@ -264,4 +274,26 @@ public class MyNode extends Node {
 		return new JDialogNode(null, true, null, null);
 	}
 
+	public boolean getTypeBool() {
+		return this.type;
+	}
+
+	@Override
+	public Set<Node> getParents(boolean recompute) {
+
+		if (!recompute) {
+			return this.cachedParent;
+		}
+
+		in = this.getIn();
+
+		Set<Node> parents = new HashSet<>();
+		in.stream().forEach((e) -> {
+
+			parents.add(e.getFrom());
+
+		});
+		this.setCachedParent(parents);
+		return parents;
+	}
 }

@@ -10,13 +10,14 @@ package es.um.multigraph.decision.lwang;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,12 +31,8 @@ import es.um.multigraph.conf.RiskScale;
 import es.um.multigraph.core.MainClass;
 import es.um.multigraph.decision.DecisionInterface;
 import es.um.multigraph.decision.basegraph.Edge;
-import es.um.multigraph.decision.lwang.ModelConfigurationDefaultImplementation;
-import es.um.multigraph.decision.poolsappasitmoop.BayesianAttackGraphAdapted;
-import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
-import es.um.multigraph.decision.poolsappasitmoop.adapt.BayesianEdgeAdapted;
-import es.um.multigraph.decision.poolsappasitmoop.adapt.BayesianNodeAdapted;
 import es.um.multigraph.decision.basegraph.Node;
+import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventStream;
 import es.um.multigraph.event.solution.Solution;
@@ -61,7 +58,8 @@ public class AttackGraph implements DecisionInterface {
 	@Override
 	public void init(MainClass main) {
 		this.parent = main;
-
+		if (main != null)
+			main.getGraph().cleanGraph();
 //		defaultInit();
 
 		try {
@@ -71,6 +69,8 @@ public class AttackGraph implements DecisionInterface {
 			e.printStackTrace();
 		}
 
+		if (main != null)
+			this.parent.getGraph().repaint(true);
 	}
 
 	/**
@@ -83,16 +83,12 @@ public class AttackGraph implements DecisionInterface {
 		ImportAG bs;
 		this.AG = new HashSet<>();
 
-		// extract method setFile() TODO
-
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
 		fl.readFile("files/AttackGraph.xml");
 
 		bs.setFile(fl);
-
-		// extract method importAG() TODO
 
 		bs.importAG();
 		ParseAG ps = new ParseAG(bs.getNodes(), bs.getEdges());
@@ -105,8 +101,27 @@ public class AttackGraph implements DecisionInterface {
 		Map<Integer, MyNode> myNodes = adapter.getMyNodes();
 		Map<String, MyEdge> myEdges = adapter.getMyEdges();
 
-		System.out.println(myNodes);
-		System.out.println(myEdges);
+		for (Map.Entry<Integer, MyNode> entry : myNodes.entrySet())
+			this.addNode(entry.getValue());
+
+		for (Entry<String, MyEdge> entry : myEdges.entrySet())
+			this.addEdge(entry.getValue());
+
+		// debug
+//		for (Iterator<? extends Node> iterator = this.getNodes().iterator(); iterator.hasNext();) {
+//			MyNode myNode = (MyNode) iterator.next();
+//			System.out.println(myNode.getID() + "(" + myNode.getSourceHost() + "," + myNode.getDestHost()
+//					+ ") - " + myNode.getLabel() + " - state: " + myNode.getState() + " - type: " + myNode.getType());
+//		}
+		
+		List<MyNode> goals = new ArrayList<MyNode>();
+		goals.add(this.getNodeByID("n11"));
+		
+//		System.out.println(goals);
+		
+		NetworkHardening nh = new NetworkHardening(this, goals);
+		nh.harden();
+
 
 	}
 
@@ -134,10 +149,15 @@ public class AttackGraph implements DecisionInterface {
 		MyEdge CA = new MyEdge("CA", C, A);
 		CA.addThisToNodes();
 
-		this.nodes.add(A);
-		this.nodes.add(B);
-		this.nodes.add(C);
-		this.nodes.add(D);
+		this.addNode(A);
+		this.addNode(B);
+		this.addNode(C);
+		this.addNode(D);
+
+		this.addEdge(DB);
+		this.addEdge(DC);
+		this.addEdge(BA);
+		this.addEdge(CA);
 
 		System.out.println("Nodes: ");
 		System.out.println(A.getFullRepresentationAsString(true));
@@ -228,7 +248,7 @@ public class AttackGraph implements DecisionInterface {
 
 	@Override
 	public void stop() {
-		parent.log("Stop requested.\n", this);
+		this.log("Stop requested.\n");
 		this.stop = true;
 	}
 
@@ -248,7 +268,7 @@ public class AttackGraph implements DecisionInterface {
 		} catch (InterruptedException ex) {
 			Logger.getLogger(EventStream.class.getName()).log(Level.SEVERE, null, ex);
 		}
-		parent.log("Stopped.\n", this);
+		this.log("Stopped.\n");
 	}
 
 	@Override
@@ -265,12 +285,28 @@ public class AttackGraph implements DecisionInterface {
 	public Class<? extends Node> getNodesClass() {
 		return Node.class;
 	}
+	
+	/**
+	 * Retrieve a node by its ID.
+	 * @param id
+	 * @return Node
+	 */
+	private MyNode getNodeByID(String id) {
+		for (Iterator iterator = this.getNodes().iterator(); iterator.hasNext();) {
+			MyNode node = (MyNode) iterator.next();
+			if(node.getID().equals(id))
+				return node;				
+		}
+		return null;
+	}
 
 	private List<Node> nodes;
 
 	@Override
 	public void addNode(Node node) {
-		this.AG.add((MyNode) node);// FIXME merge the lists into AG
+		log("Add node (ID: " + node.getID() + ", L: " + node.getLabel() + ")\n");
+//		node.setLabel("");
+//		this.AG.add((MyNode) node);// FIXME merge the lists into AG
 
 		if (this.parent != null)
 			this.parent.addNodeToGraph(node);
@@ -280,8 +316,11 @@ public class AttackGraph implements DecisionInterface {
 
 	@Override
 	public void addEdge(Edge edge) {
-		throw new UnsupportedOperationException("Not supported yet.");
-		// FIXME
+		log("Add edge (ID: " + edge.getID() + ")\n");
+		((MyEdge) edge).addThisToNodes();
+		if (this.parent != null) {
+			this.parent.addEdgeToGraph(edge);
+		}
 	}
 
 	@Override

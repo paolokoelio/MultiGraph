@@ -4,13 +4,14 @@ It is intended to help comparing these novel approaches with already existing de
 It has also as an objective to determine those aspects of existing models that have not been completely defined or specified by their authors and thus may need some completion before being used in lab or real attack scenarios.  
 
 ### Features
-* File import from MulVAL XML files (w.r.t. specific rules file, to be uploaded here)
-* Manually redefining of the AG
-* Optimization problems solutions:
+* AG import from MulVAL XML files (w.r.t. specific rules file, to be uploaded here)
+* Manual configuration of the AG
+* Optimization problem solutions:
 	* Poolsappasit et al. - SOOP & MOOP
 	* Wang L. et al. - TODO
 * Interactive graph
 * Export CSV lists of optimal recommendations
+* Comparisons of different methods and strategies - TODO
 
 ### GUI 
 ![GUI](/src/es/um/multigraph/resources/images/MultiGraphScreen2.png)

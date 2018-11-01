@@ -294,8 +294,9 @@ public class BayesianAttackGraph implements DecisionInterface {
 	@Override
 	public void init(MainClass main) {
 		this.parent = main;
+		main.getGraph().cleanGraph();
 		log("Start default initialization\n");
-
+		
 		initDefault();
 		
 /*		try {
