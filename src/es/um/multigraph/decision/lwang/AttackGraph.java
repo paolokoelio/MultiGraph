@@ -115,7 +115,7 @@ public class AttackGraph implements DecisionInterface {
 //		}
 		
 		List<MyNode> goals = new ArrayList<MyNode>();
-		goals.add(this.getNodeByID("n11"));
+		goals.add(this.getNodeByID("n1"));
 		
 //		System.out.println(goals);
 		
