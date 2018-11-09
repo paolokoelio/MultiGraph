@@ -32,6 +32,7 @@ import es.um.multigraph.core.MainClass;
 import es.um.multigraph.decision.DecisionInterface;
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
+import es.um.multigraph.decision.poolsappasitmoop.BayesianCMNode;
 import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventStream;
@@ -121,7 +122,35 @@ public class AttackGraph implements DecisionInterface {
 		
 		NetworkHardening nh = new NetworkHardening(this, goals);
 		nh.harden();
-
+		List<Object> L = nh.getL();
+		log("L:");
+		
+		/* Write and log CSVs with plans */
+		int j = 1;
+		List<String> rowsCSV = new ArrayList<String>();
+		for (Iterator<Object> iterator = L.iterator(); iterator.hasNext();) {
+			ArrayList<MyNode> opt = (ArrayList<MyNode>) iterator.next();
+			
+//			log(opt.toString());
+//			log(opt.get(0).getFullRepresentationAsString(false).toString() );
+			
+			String row = "";
+			
+//			BayesianCMNode<Solution> cmNode = null;
+			for (Iterator<MyNode> iter2 = opt.iterator(); iter2.hasNext();) {
+				MyNode node = iter2.next();
+				row = row +  node.getID () + ",";
+				
+			}
+			row = row + "\n";
+			log(row);	rowsCSV.add(row);
+			
+//			System.out.println(row);
+//			
+//			//FIXME static file name
+//			utMoop.writeCSV("Pool_SecPlan_" + j, rowsCSV);
+//			j++;
+		}
 
 	}
 

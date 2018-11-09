@@ -8,7 +8,7 @@ It has also as an objective to determine those aspects of existing models that h
 * Manual configuration of the AG
 * Optimization problem solutions:
 	* Poolsappasit et al. - SOOP & MOOP
-	* Wang L. et al. - TODO
+	* Wang L. et al.
 * Interactive graph
 * Export CSV lists of optimal recommendations
 * Comparisons of different methods and strategies - TODO

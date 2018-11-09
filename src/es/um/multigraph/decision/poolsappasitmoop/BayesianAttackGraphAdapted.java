@@ -459,7 +459,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				}
 			
 			//FIXME static file name
-			utMoop.writeCSV("SecPlan_" + j, rowsCSV);
+			utMoop.writeCSV("Pool_SecPlan_" + j, rowsCSV);
 			j++;
 		}
 

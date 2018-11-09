@@ -224,4 +224,9 @@ public class NetworkHardening {
 
 		return null;
 	}
+
+	public List<Object> getL() {
+		return L;
+	}
+
 }
