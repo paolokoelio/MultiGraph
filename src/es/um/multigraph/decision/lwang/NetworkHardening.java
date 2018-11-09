@@ -15,21 +15,19 @@ import es.um.multigraph.decision.basegraph.Node;
 /**
  * Hardening procedure implementation as described in L.Wang et al.
  * 
- * @author Pavlo Burda <a href="mailto:p.burda@tue.nl">p.burda@tue.nl</a>
+ * @author Pavlo Burda p.burda@tue.nl
  */
 
 public class NetworkHardening {
 
 	AttackGraph AG;
-
-	//FIXME
-	private Set<MyNode> exploits;
-	private Set<MyNode> conditions;
 	
 	// Goal conditions to be protected
 	private List<MyNode> goals;
 	// Result of initials conditions to be negated
-	private List<MyNode> L;
+	private List<Object> L;
+	// Class useful to to store the result L of initials conditions to be negated
+	private InitialConds initConds = new InitialConds();
 	// Temporary FIFO queue to store search results
 	private Queue<MyNode> queue;
 	// Sets of Pre(e) and Pre(c) predecessors for every e and c in the AG
@@ -40,10 +38,9 @@ public class NetworkHardening {
 		this.AG = AG;
 		this.goals = goals;
 		this.queue = new LinkedList<MyNode>();
-		this.exploits = new HashSet<MyNode>();
-		this.conditions = new HashSet<MyNode>();
 		// result L
-		this.L = new ArrayList<MyNode>();
+		this.L = new LinkedList<Object>();
+		this.L.add(this.goals.get(0));
 		this.preE = new HashMap<MyNode, List<MyNode>>();
 		this.preC = new HashMap<MyNode, List<MyNode>>();
 
@@ -53,21 +50,18 @@ public class NetworkHardening {
 		for (Iterator<MyNode> iterator = this.goals.iterator(); iterator.hasNext();) {
 			MyNode myNode = (MyNode) iterator.next();
 			this.queue.add(myNode);
-//			this.L.add(myNode);//FIXME
 		}
 
 		for (Iterator<Node> iterator = (Iterator<Node>) this.AG.getNodes().iterator(); iterator.hasNext();) {
 			MyNode myNode = (MyNode) iterator.next();
 
 			if (myNode.getTypeBool() == MyNode.EXPLOIT) {
-				this.exploits.add(myNode);//FIXME
 
 				// for each e do Pre(e) = {e} etc
 				preE.put(myNode, new ArrayList<MyNode>());
 				preE.get(myNode).add(myNode);
 
 			} else {
-				this.conditions.add(myNode);//FIXME
 
 				// for each c do Pre(c) = {c} etc
 				preC.put(myNode, new ArrayList<MyNode>());
@@ -75,10 +69,11 @@ public class NetworkHardening {
 			}
 		}
 
-		System.out.println("preC: " + preC);
-		System.out.println("preE: " + preE);
-		System.out.println("queue: " + queue);
-		System.out.println("L: " + L);
+//		//check
+//		System.out.println("preC: " + preC);
+//		System.out.println("preE: " + preE);
+//		System.out.println("queue: " + queue);
+//		System.out.println("L: " + L);
 	}
 
 	public List<MyNode> harden() {
@@ -131,8 +126,8 @@ public class NetworkHardening {
 					}
 				}
 
-				// replace c with T in L (pay attention here) FIXME
-				this.L.addAll(T);
+				// replace c with T in L
+				this.L = this.initConds.replaceEl((List<Object>)(List<?>) T, nodeQ, this.L);
 
 				// for each ei belongs to Se - Pre(c)
 				Set<Node> diff = new HashSet<Node>(parentExploits);
@@ -150,8 +145,8 @@ public class NetworkHardening {
 				}
 
 				// check
-				System.out.println("T: " + T);
-				System.out.println("Q: " + this.queue);
+//				System.out.println("T: " + T);
+//				System.out.println("Q: " + this.queue);
 
 				// end for each c dequeued from Q
 
@@ -190,8 +185,8 @@ public class NetworkHardening {
 					}
 				}
 
-				// replace e with T in L (pay attention here) FIXME
-				L.addAll(T);
+				// replace c with T in L
+				this.L = this.initConds.replaceEl((List<Object>)(List<?>) T, nodeQ, this.L);
 
 				// for each ei belongs to Se - Pre(c)
 				Set<Node> diff = new HashSet<Node>(parentConds);
@@ -206,33 +201,25 @@ public class NetworkHardening {
 					this.preC.get((MyNode) node).addAll(this.preE.get(nodeQ));
 				}
 
-//				for (Iterator<?> iterator3 = diff.iterator(); iterator3.hasNext();) {
-//					MyNode c = (MyNode) iterator3.next();
-//					// enqueue ei in Q
-//					this.queue.add(c);
-//
-//					// Let Pre(ei) = Pre(ei) union Pre(c)
-//					this.preC.get(c).addAll(this.preE.get(nodeQ));
-//				}
-
 				// check
-				System.out.println("T: " + T);
-				System.out.println("Q: " + this.queue);
+//				System.out.println("T: " + T);
+//				System.out.println("Q: " + this.queue);
 
 			} // end for each e dequeued from Q\
-
-			// remove c from Q
-//			this.queue.remove();
-			System.out.println("L: " + L);
+			
+//			System.out.println("L: " + L);
 		}
 
+		this.L = initConds.flatten(L);
+		System.out.println("Logical prop. to be negated L: \n" + this.L);
+		
 		/*
 		 * debug print.out for case lines 9 and 17 of L.Wang et al. algorithm i.e. the
-		 * state of the nodes in case of cycles ?
+		 * state of the nodes in case of cycles ? TODO
 		 */
-		for (Iterator<MyNode> iterator4 = this.L.iterator(); iterator4.hasNext();) {
-			MyNode n = iterator4.next();
-			System.out.println("Res: " + n + "-" + n.getState());
+		for (Iterator<Object> iterator4 = this.L.iterator(); iterator4.hasNext();) {
+			Object n = iterator4.next();
+//			System.out.println("L types: " + n.getClass()); // + "-" + n2.getState());
 		}
 
 		return null;
