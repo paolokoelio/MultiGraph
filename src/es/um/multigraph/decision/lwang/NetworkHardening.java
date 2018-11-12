@@ -211,16 +211,7 @@ public class NetworkHardening {
 		}
 
 		this.L = initConds.flatten(L);
-		System.out.println("Logical prop. to be negated L: \n" + this.L);
-		
-		/*
-		 * debug print.out for case lines 9 and 17 of L.Wang et al. algorithm i.e. the
-		 * state of the nodes in case of cycles ? TODO
-		 */
-		for (Iterator<Object> iterator4 = this.L.iterator(); iterator4.hasNext();) {
-			Object n = iterator4.next();
-//			System.out.println("L types: " + n.getClass()); // + "-" + n2.getState());
-		}
+//		System.out.println("Logical prop. to be negated L: \n" + this.L);
 
 		return null;
 	}

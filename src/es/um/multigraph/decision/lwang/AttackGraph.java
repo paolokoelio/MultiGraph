@@ -29,6 +29,13 @@ import java.util.logging.Logger;
 import javax.swing.JFrame;
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.bpodgursky.jbool_expressions.And;
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Not;
+import com.bpodgursky.jbool_expressions.Or;
+import com.bpodgursky.jbool_expressions.Variable;
+import com.bpodgursky.jbool_expressions.rules.RuleSet;
+
 import es.um.multigraph.conf.DBManager;
 import es.um.multigraph.conf.FeaturesEnum;
 import es.um.multigraph.conf.RiskScale;
@@ -146,7 +153,13 @@ public class AttackGraph implements DecisionInterface {
 			log(row);	rowsCSV.add(row);
 			
 		}
-		this.writeCSV(rowsCSV);
+//		this.writeCSV(rowsCSV);
+		
+		Expression dnfL = this.getDNF(this.getExpression(L));
+		
+		//TODO write parser and then to CSV
+		System.out.println(dnfL);
+		
 	}
 
 	/**
@@ -198,6 +211,37 @@ public class AttackGraph implements DecisionInterface {
 	// ========================================================================
 	// UTILS
 	// ========================================================================
+	
+	@SuppressWarnings("unchecked")
+	public Expression getExpression(List<Object> L) {
+		Expression<String> trueL;
+		Expression[] ors = new Expression[L.size()];
+		
+		Iterator<Object> iterator = L.iterator();
+		for (int i=0; iterator.hasNext(); i++) {
+			ArrayList<MyNode> opt = (ArrayList<MyNode>) iterator.next();
+			Expression[] ands = new Expression[opt.size()];
+			
+			Iterator<MyNode> iter2 = opt.iterator();
+			for (int j = 0; iter2.hasNext(); j++) {
+				MyNode node = iter2.next();
+				ands[j] = Variable.of(node.getID());
+			}
+			ors[i] = And.of(ands);
+		}
+		
+		trueL =  Not.of(Or.of(ors));
+		
+		return trueL;
+	}
+	
+	public Expression getDNF(Expression L) {
+
+	    Expression<String> posForm = RuleSet.toDNF(L);
+	    System.out.println(posForm);
+		
+		return posForm;
+	}
 	
 	public void writeCSV(List<String> conds) {
 
