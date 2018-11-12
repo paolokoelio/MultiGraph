@@ -8,10 +8,14 @@
  */
 package es.um.multigraph.decision.lwang;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,8 +36,6 @@ import es.um.multigraph.core.MainClass;
 import es.um.multigraph.decision.DecisionInterface;
 import es.um.multigraph.decision.basegraph.Edge;
 import es.um.multigraph.decision.basegraph.Node;
-import es.um.multigraph.decision.poolsappasitmoop.BayesianCMNode;
-import es.um.multigraph.decision.poolsappasitmoop.BayesianNode;
 import es.um.multigraph.event.Event;
 import es.um.multigraph.event.EventStream;
 import es.um.multigraph.event.solution.Solution;
@@ -51,7 +53,9 @@ public class AttackGraph implements DecisionInterface {
 
 	MainClass parent;
 	private boolean stop = false;
-
+	private static final String NEW_LINE_SEPARATOR = "\n";
+	private static final String FILE_HEADER = "nodeIds";
+	
 	public AttackGraph() {
 		this.nodes = new LinkedList<>();
 	}
@@ -123,35 +127,26 @@ public class AttackGraph implements DecisionInterface {
 		NetworkHardening nh = new NetworkHardening(this, goals);
 		nh.harden();
 		List<Object> L = nh.getL();
-		log("L:");
+		log("Result - L:\n");
 		
 		/* Write and log CSVs with plans */
-		int j = 1;
 		List<String> rowsCSV = new ArrayList<String>();
 		for (Iterator<Object> iterator = L.iterator(); iterator.hasNext();) {
 			ArrayList<MyNode> opt = (ArrayList<MyNode>) iterator.next();
 			
-//			log(opt.toString());
-//			log(opt.get(0).getFullRepresentationAsString(false).toString() );
-			
 			String row = "";
 			
-//			BayesianCMNode<Solution> cmNode = null;
 			for (Iterator<MyNode> iter2 = opt.iterator(); iter2.hasNext();) {
 				MyNode node = iter2.next();
 				row = row +  node.getID () + ",";
-				
 			}
-			row = row + "\n";
+
+			row = row.replaceAll(",$", "");
+			row = row + NEW_LINE_SEPARATOR;
 			log(row);	rowsCSV.add(row);
 			
-//			System.out.println(row);
-//			
-//			//FIXME static file name
-//			utMoop.writeCSV("Pool_SecPlan_" + j, rowsCSV);
-//			j++;
 		}
-
+		this.writeCSV(rowsCSV);
 	}
 
 	/**
@@ -199,12 +194,53 @@ public class AttackGraph implements DecisionInterface {
 		AttackGraph a = new AttackGraph();
 		a.init(null);
 	}
+	
+	// ========================================================================
+	// UTILS
+	// ========================================================================
+	
+	public void writeCSV(List<String> conds) {
+
+		String path = "Wang_NetHard";
+		String base_path = "files/solutions/";
+		Date date = new Date();
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
+		path = base_path + path + "_" + dateFormat.format(date) + ".csv";
+
+		FileUtils fileUtils = new FileUtils();
+		FileWriter writer = fileUtils.getWriter(path);
+
+		try {
+			// Write the CSV file header
+			writer.append(FILE_HEADER.toString());
+
+			// Add a new line separator after the header
+			writer.append(NEW_LINE_SEPARATOR);
+
+			for (Iterator<String> iterator = conds.iterator(); iterator.hasNext();)
+				writer.append(iterator.next());
+
+		} catch (Exception e) {
+			System.out.println("Error in Writer");
+			e.printStackTrace();
+		} finally {
+
+			try {
+				writer.flush();
+				writer.close();
+			} catch (IOException e) {
+				System.out.println("Error while flushing/closing Writer");
+				e.printStackTrace();
+			}
+
+		}
+	}
 
 	// ========================================================================
 	// PAPER IMPL.
 	// ========================================================================
 
-	private Set<MyNode> AG = new HashSet<>();
+	private Set<MyNode> AG = new HashSet<>();//FIXME
 
 	// ========================================================================
 	// INHEREDITED PROP.
