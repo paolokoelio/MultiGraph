@@ -94,6 +94,12 @@ cmId,targetId,type
 pn15,n15,SI_02: FLAW REMEDIATION
 ```
 
+(L. Wang et al. case)
+```
+nodeIds
+!n4 | (!n3 & !n8) | (!n3 & !n9) | (!n5 & !n8) | (!n5 & !n9)
+```
+
 
 ## References   
 * M. Zago, Modeling Cyber-Threats: Adopting Bayes' principles in the Attack Graph theory, 2015  

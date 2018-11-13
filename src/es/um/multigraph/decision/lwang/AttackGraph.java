@@ -54,7 +54,7 @@ import es.um.multigraph.utils.ParseAG;
 /**
  *
  * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>
- * @author Pavlo Burda
+ * @author Pavlo Burda - p.burda@tue.nl
  */
 public class AttackGraph implements DecisionInterface {
 
@@ -62,6 +62,10 @@ public class AttackGraph implements DecisionInterface {
 	private boolean stop = false;
 	private static final String NEW_LINE_SEPARATOR = "\n";
 	private static final String FILE_HEADER = "nodeIds";
+	private static final String PAPER_PREFIX = "Wang_NetHard";
+	private static final String INPUT_AG_PATH = "files/AttackGraph.xml";
+	private static final String SOL_BASE_PATH = "files/solutions/";
+	private static final String GOAL_NODE = "n1"; //FIXME
 	
 	public AttackGraph() {
 		this.nodes = new LinkedList<>();
@@ -72,6 +76,7 @@ public class AttackGraph implements DecisionInterface {
 		this.parent = main;
 		if (main != null)
 			main.getGraph().cleanGraph();
+		
 //		defaultInit();
 
 		try {
@@ -87,7 +92,8 @@ public class AttackGraph implements DecisionInterface {
 
 	/**
 	 * @throws ParserConfigurationException Start AG simulation from MulVAL import.
-	 * 
+	 * Implements the procedures described in L. Wang et al., including Network Hardening
+	 * and cost function. TODO
 	 * @throws
 	 */
 
@@ -98,7 +104,7 @@ public class AttackGraph implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		fl.readFile("files/AttackGraph.xml");
+		fl.readFile(INPUT_AG_PATH);
 
 		bs.setFile(fl);
 
@@ -119,47 +125,21 @@ public class AttackGraph implements DecisionInterface {
 		for (Entry<String, MyEdge> entry : myEdges.entrySet())
 			this.addEdge(entry.getValue());
 
-		// debug
-//		for (Iterator<? extends Node> iterator = this.getNodes().iterator(); iterator.hasNext();) {
-//			MyNode myNode = (MyNode) iterator.next();
-//			System.out.println(myNode.getID() + "(" + myNode.getSourceHost() + "," + myNode.getDestHost()
-//					+ ") - " + myNode.getLabel() + " - state: " + myNode.getState() + " - type: " + myNode.getType());
-//		}
-		
 		List<MyNode> goals = new ArrayList<MyNode>();
-		goals.add(this.getNodeByID("n1"));
-		
-//		System.out.println(goals);
+		goals.add(this.getNodeByID(GOAL_NODE));
 		
 		NetworkHardening nh = new NetworkHardening(this, goals);
 		nh.harden();
 		List<Object> L = nh.getL();
 		log("Result - L:\n");
+
+		Expression dnfL =  RuleSet.toDNF(this.getExpression(L));
+		log(dnfL.toLexicographicString());
 		
 		/* Write and log CSVs with plans */
 		List<String> rowsCSV = new ArrayList<String>();
-		for (Iterator<Object> iterator = L.iterator(); iterator.hasNext();) {
-			ArrayList<MyNode> opt = (ArrayList<MyNode>) iterator.next();
-			
-			String row = "";
-			
-			for (Iterator<MyNode> iter2 = opt.iterator(); iter2.hasNext();) {
-				MyNode node = iter2.next();
-				row = row +  node.getID () + ",";
-			}
-
-			row = row.replaceAll(",$", "");
-			row = row + NEW_LINE_SEPARATOR;
-			log(row);	rowsCSV.add(row);
-			
-		}
-//		this.writeCSV(rowsCSV);
-		
-		Expression dnfL = this.getDNF(this.getExpression(L));
-		
-		//TODO write parser and then to CSV
-		System.out.println(dnfL);
-		
+		rowsCSV = this.parseDNF(dnfL);
+		this.writeCSV(rowsCSV);
 	}
 
 	/**
@@ -235,21 +215,36 @@ public class AttackGraph implements DecisionInterface {
 		return trueL;
 	}
 	
-	public Expression getDNF(Expression L) {
-
-	    Expression<String> posForm = RuleSet.toDNF(L);
-	    System.out.println(posForm);
+	public List<String> parseDNF(Expression L) {
 		
-		return posForm;
+		//remove first and last chars: ( and )
+		String parsedL = L.toLexicographicString().replaceAll("^.|.$", "");
+		//replace ORs with \n
+		parsedL = parsedL.replaceAll("( \\| )", "\n");
+		//replace ANDs with commas
+		parsedL = parsedL.replaceAll("( \\& )", ",");
+		//(?m) multiline, remove all brackets
+		parsedL = parsedL.replaceAll("(?m)^\\(|\\)$", "");
+		//remove NOTs
+		parsedL = parsedL.replaceAll("!", "");
+		
+		ArrayList<String> sentence = new ArrayList<String>();
+		
+		String lines[] = parsedL.split("\\n");
+
+		for(String line: lines) {
+		    sentence.add(line);
+		}
+		
+		return sentence;
 	}
 	
 	public void writeCSV(List<String> conds) {
 
-		String path = "Wang_NetHard";
-		String base_path = "files/solutions/";
+		String path = PAPER_PREFIX;
 		Date date = new Date();
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
-		path = base_path + path + "_" + dateFormat.format(date) + ".csv";
+		path = SOL_BASE_PATH + path + "_" + dateFormat.format(date) + ".csv";
 
 		FileUtils fileUtils = new FileUtils();
 		FileWriter writer = fileUtils.getWriter(path);
@@ -262,7 +257,7 @@ public class AttackGraph implements DecisionInterface {
 			writer.append(NEW_LINE_SEPARATOR);
 
 			for (Iterator<String> iterator = conds.iterator(); iterator.hasNext();)
-				writer.append(iterator.next());
+				writer.append(iterator.next() + NEW_LINE_SEPARATOR);
 
 		} catch (Exception e) {
 			System.out.println("Error in Writer");
