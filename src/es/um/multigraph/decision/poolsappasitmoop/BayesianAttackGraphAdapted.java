@@ -472,9 +472,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		
 //		Plot plot = new Plot();
 //		plot.add("NSGAII", moop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
-
-		
-		
 		
 	}
 	

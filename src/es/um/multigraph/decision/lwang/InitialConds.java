@@ -11,11 +11,11 @@ import org.junit.Test;
 
 /**
  * 
- * A very inefficient solution to store a logical proposition using Lists.
+ * An inefficient solution to store a logical proposition using Lists.
  * Represents the result of the NetworkHardening algorithm in L.Wang et al. aka
  * a logical proposition, e.g. L =((c1 AND c2) OR (c2 AND c3)) to be negated.
  * The AND OR logical operators are interpreted like this: a list of only
- * MyNode.EXPLOITSs has OR for every comma; a list of only MyNode.CONDITIONs has
+ * MyNode.EXPLOITs has OR for every comma; a list of only MyNode.CONDITIONs has
  * AND for every comma; the innermost elements are always conditions, thus they
  * will be all ANDed within their respective lists, this means the immediate
  * parent level (i.e. the parent list) will be all ORed because it contained

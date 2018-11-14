@@ -21,7 +21,7 @@ import es.um.multigraph.decision.basegraph.Node;
 public class NetworkHardening {
 
 	AttackGraph AG;
-	
+
 	// Goal conditions to be protected
 	private List<MyNode> goals;
 	// Result of initials conditions to be negated
@@ -120,14 +120,15 @@ public class NetworkHardening {
 				for (Iterator<?> iterator2 = intersection.iterator(); iterator2.hasNext();) {
 					MyNode e = (MyNode) iterator2.next();
 					// set e with false in T
+					// FIXME create a dummy condition/expl. to function as FALSE in the log. prop.
 					if (T.remove(e)) {
 						e.setState(false);
 						T.add(e);
 					}
 				}
 
-				// replace c with T in L
-				this.L = this.initConds.replaceEl((List<Object>)(List<?>) T, nodeQ, this.L);
+				// replace c with T in L //JVM doesn't know types, I do so it's ok
+				this.L = this.initConds.replaceEl((List<Object>) (List<?>) T, nodeQ, this.L);
 
 				// for each ei belongs to Se - Pre(c)
 				Set<Node> diff = new HashSet<Node>(parentExploits);
@@ -186,7 +187,7 @@ public class NetworkHardening {
 				}
 
 				// replace c with T in L
-				this.L = this.initConds.replaceEl((List<Object>)(List<?>) T, nodeQ, this.L);
+				this.L = this.initConds.replaceEl((List<Object>) (List<?>) T, nodeQ, this.L);
 
 				// for each ei belongs to Se - Pre(c)
 				Set<Node> diff = new HashSet<Node>(parentConds);
@@ -206,7 +207,7 @@ public class NetworkHardening {
 //				System.out.println("Q: " + this.queue);
 
 			} // end for each e dequeued from Q\
-			
+
 //			System.out.println("L: " + L);
 		}
 
@@ -214,6 +215,18 @@ public class NetworkHardening {
 //		System.out.println("Logical prop. to be negated L: \n" + this.L);
 
 		return null;
+	}
+
+	/**
+	 * Approximation alg. as per paper ForwardSearch
+	 * 
+	 * @param k, approximation threshold
+	 */
+
+	public List<MyNode> hardenApprox(int k) {
+		throw new UnsupportedOperationException("Not supported yet.");
+		// TODO Do in case the exact algorithm is not enough
+
 	}
 
 	public List<Object> getL() {

@@ -1,9 +1,9 @@
 /**
- * MULTIGRAPH
+ * MULTIGRAPH - FIXME
  *
- * Project for Mattia Zago Master Thesis
- *
- * (C) 2015 - Mattia Zago
+ * Attack Graph Simulation and Network Hardening
+ * 
+ * Pavlo Burda
  *
  */
 package es.um.multigraph.decision.lwang;
@@ -53,8 +53,9 @@ import es.um.multigraph.utils.ParseAG;
 
 /**
  *
- * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>
  * @author Pavlo Burda - p.burda@tue.nl
+ * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>
+ *
  */
 public class AttackGraph implements DecisionInterface {
 
@@ -65,8 +66,8 @@ public class AttackGraph implements DecisionInterface {
 	private static final String PAPER_PREFIX = "Wang_NetHard";
 	private static final String INPUT_AG_PATH = "files/AttackGraph.xml";
 	private static final String SOL_BASE_PATH = "files/solutions/";
-	private static final String GOAL_NODE = "n1"; //FIXME
-	
+	private static final String GOAL_NODE = "n1"; // FIXME
+
 	public AttackGraph() {
 		this.nodes = new LinkedList<>();
 	}
@@ -76,7 +77,7 @@ public class AttackGraph implements DecisionInterface {
 		this.parent = main;
 		if (main != null)
 			main.getGraph().cleanGraph();
-		
+
 //		defaultInit();
 
 		try {
@@ -92,9 +93,8 @@ public class AttackGraph implements DecisionInterface {
 
 	/**
 	 * @throws ParserConfigurationException Start AG simulation from MulVAL import.
-	 * Implements the procedures described in L. Wang et al., including Network Hardening
-	 * and cost function. TODO
-	 * @throws
+	 * Implements the procedures described in L. Wang et al., including Network
+	 * Hardening and cost function (TODO make the same one of Poolsappasit).
 	 */
 
 	private void initAGsim() throws ParserConfigurationException {
@@ -127,15 +127,16 @@ public class AttackGraph implements DecisionInterface {
 
 		List<MyNode> goals = new ArrayList<MyNode>();
 		goals.add(this.getNodeByID(GOAL_NODE));
-		
+
 		NetworkHardening nh = new NetworkHardening(this, goals);
 		nh.harden();
+//		nh.hardenApprox(1); //TODO check if needed approx. alg. (ForwardSearch)
 		List<Object> L = nh.getL();
 		log("Result - L:\n");
 
-		Expression dnfL =  RuleSet.toDNF(this.getExpression(L));
-		log(dnfL.toLexicographicString());
-		
+		Expression dnfL = RuleSet.toDNF(this.getExpression(L));
+		log(dnfL.toLexicographicString() + "\n");
+
 		/* Write and log CSVs with plans */
 		List<String> rowsCSV = new ArrayList<String>();
 		rowsCSV = this.parseDNF(dnfL);
@@ -187,21 +188,21 @@ public class AttackGraph implements DecisionInterface {
 		AttackGraph a = new AttackGraph();
 		a.init(null);
 	}
-	
+
 	// ========================================================================
 	// UTILS
 	// ========================================================================
-	
+
 	@SuppressWarnings("unchecked")
 	public Expression getExpression(List<Object> L) {
 		Expression<String> trueL;
 		Expression[] ors = new Expression[L.size()];
-		
+
 		Iterator<Object> iterator = L.iterator();
-		for (int i=0; iterator.hasNext(); i++) {
+		for (int i = 0; iterator.hasNext(); i++) {
 			ArrayList<MyNode> opt = (ArrayList<MyNode>) iterator.next();
 			Expression[] ands = new Expression[opt.size()];
-			
+
 			Iterator<MyNode> iter2 = opt.iterator();
 			for (int j = 0; iter2.hasNext(); j++) {
 				MyNode node = iter2.next();
@@ -209,38 +210,38 @@ public class AttackGraph implements DecisionInterface {
 			}
 			ors[i] = And.of(ands);
 		}
-		
-		trueL =  Not.of(Or.of(ors));
-		
+
+		trueL = Not.of(Or.of(ors));
+
 		return trueL;
 	}
-	
+
 	public List<String> parseDNF(Expression L) {
-		
-		//remove first and last chars: ( and )
+
+		// remove first and last chars: ( and )
 		String parsedL = L.toLexicographicString().replaceAll("^.|.$", "");
-		//replace ORs with \n
+		// replace ORs with \n
 		parsedL = parsedL.replaceAll("( \\| )", "\n");
-		//replace ANDs with commas
+		// replace ANDs with commas
 		parsedL = parsedL.replaceAll("( \\& )", ",");
-		//(?m) multiline, remove all brackets
+		// (?m) multi-line, remove all brackets
 		parsedL = parsedL.replaceAll("(?m)^\\(|\\)$", "");
-		//remove NOTs
+		// remove NOTs
 		parsedL = parsedL.replaceAll("!", "");
-		
+
 		ArrayList<String> sentence = new ArrayList<String>();
-		
+
 		String lines[] = parsedL.split("\\n");
 
-		for(String line: lines) {
-		    sentence.add(line);
+		for (String line : lines) {
+			sentence.add(line);
 		}
-		
+
 		return sentence;
 	}
-	
-	public void writeCSV(List<String> conds) {
 
+	public void writeCSV(List<String> conds) {
+//		TODO extract this method to a Utils class, method de-duplication
 		String path = PAPER_PREFIX;
 		Date date = new Date();
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
@@ -279,7 +280,7 @@ public class AttackGraph implements DecisionInterface {
 	// PAPER IMPL.
 	// ========================================================================
 
-	private Set<MyNode> AG = new HashSet<>();//FIXME
+	private Set<MyNode> AG = new HashSet<>();// FIXME
 
 	// ========================================================================
 	// INHEREDITED PROP.
@@ -389,17 +390,18 @@ public class AttackGraph implements DecisionInterface {
 	public Class<? extends Node> getNodesClass() {
 		return Node.class;
 	}
-	
+
 	/**
 	 * Retrieve a node by its ID.
+	 * 
 	 * @param id
 	 * @return Node
 	 */
 	private MyNode getNodeByID(String id) {
 		for (Iterator iterator = this.getNodes().iterator(); iterator.hasNext();) {
 			MyNode node = (MyNode) iterator.next();
-			if(node.getID().equals(id))
-				return node;				
+			if (node.getID().equals(id))
+				return node;
 		}
 		return null;
 	}

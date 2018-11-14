@@ -14,7 +14,6 @@ public class MOOProblem extends AbstractProblem {
 
 	public MOOProblem(int numberOfVariables, int numberOfObjectives) {
 		super(numberOfVariables, numberOfObjectives);
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -35,7 +34,7 @@ public class MOOProblem extends AbstractProblem {
 	/**
 	 * Entry {@code lg[i][j]} is the value of an attribute/node, if counter measure
 	 * is not applied lg[i][0] or it is applied lg[i][1] {@code i}. These values are
-	 * pre-computed: double v = [1 - pr[i]]*gain[i] - pr[i]*loss[i];
+	 * pre-computed: {@code double v = [1 - pr[i]]*gain[i] - pr[i]*loss[i]};
 	 */
 	public double[][] lg = { { -0.088, 0.2 }, { -0.104, 0.4 }, { 0, 0.7 }, { 0.2, 0.4 } };
 
