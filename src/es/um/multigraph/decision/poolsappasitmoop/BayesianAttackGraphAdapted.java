@@ -295,7 +295,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	@Override
 	public void init(MainClass main) {
 		this.parent = main;
-		main.getGraph().cleanGraph();
+		if(this.parent != null)
+			main.getGraph().cleanGraph();
 		log("Start default initialization\n");
 
 //		initDefault();
@@ -328,10 +329,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	 * @throws SQLException 
 	 */
 	private void initAGsim() throws SQLException, ParserConfigurationException {
+		
+		final String PAPER_PREFIX = "Pool_SecPlan_";
+		
 		ImportAG bs;
 		this.BAG = new HashSet<>();
-
-		//extract method setFile() TODO
 
 		bs = new ImportAG();
 
@@ -339,8 +341,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		fl.readFile("files/AttackGraph.xml");
 
 		bs.setFile(fl);
-		
-		//extract method importAG() TODO
 		
 		bs.importAG();
 		ParseAG ps = new ParseAG(bs.getNodes(), bs.getEdges());
@@ -364,7 +364,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		
 		log("BAG parsed and converted\n");
 		
-		//extract method popUpAlert(): " compute LCPD adn uncProb"  TODO
+		//setting big loss for goal node
+		((BayesianNodeAdapted) this.getNodeByID("n10")).setExpectedLoss(20d);
 		
 		/*
 		 * Generating LGs before applying CMs, we'll need that for later
@@ -375,9 +376,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		
 		//HEREWAS exlg preservaton before adding CMs
 		
-		//extarct method genAutomCMs() TODO
 		/*
-		 * Automatically generating CMs for compatible nodes as defined in (by me TODO)
+		 * Automatically generating CMs for compatible nodes as defined in (by me)
 		 */
 		BayesianCMGenerator bGen = new BayesianCMGenerator(this.getNodes());
 		bGen.generateCMs();
@@ -400,14 +400,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		this.updateCMlcpd(bGen);
 		
 		log("Counter Measures LCPDs updated\n");
-			
-		//end extract method
 	
 		/* set dummy alpha & beta for SOOP */
 		this.setExpectedGainWeight(0.5);
 		this.setExpectedLossWeight(0.5);
 		
-		//extarct method runMOOP() TODO
 		/* Start MOOP procedures */
 		
 		/* Getting CM IDs and associated costs */
@@ -428,8 +425,9 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		utMoop.setLGsAfter(exlgAfter);
 		utMoop.genNodesLGs();
 
-		/* Instantiate MOOP problem with one variable as binary string
-		 * that represents all the CMs in order: { cm1, cm2, cm3 } == 010, cm2 is enabled in this case.
+		/* 
+		 * Instantiate MOOP problem with one variable as binary string
+		 * that represents all the CMs in order: { cm1, cm2, cm3 } == 010, cm2 will be enabled in the solution.
 		 */
 		MOOProblem moop = new MOOProblem(1, 2);
 		
@@ -459,7 +457,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				}
 			
 			//FIXME static file name
-			utMoop.writeCSV("Pool_SecPlan_" + j, rowsCSV);
+			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
 			j++;
 		}
 
@@ -467,8 +465,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		if(!secPlans.isEmpty())
 			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
 				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
-		
-		//extract method showPlot() TODO
 		
 //		Plot plot = new Plot();
 //		plot.add("NSGAII", moop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();

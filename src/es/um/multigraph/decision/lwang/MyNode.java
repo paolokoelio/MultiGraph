@@ -42,6 +42,8 @@ public class MyNode extends Node {
 	private boolean type = MyNode.EXPLOIT;
 	// node type MulVAL definition: AND, OR, LEAF
 	private String typeMulval;
+	// node disabling cost (introduced by me)
+	private double cost;
 
 	public void setState(boolean state) {
 		this.state = state;
@@ -59,7 +61,15 @@ public class MyNode extends Node {
 		this.typeMulval = type;
 	}
 
-	// TODO elaborate on this if it' s reallly needed
+	public double getCost() {
+		return cost;
+	}
+
+	public void setCost(double cost) {
+		this.cost = cost;
+	}
+	
+	// FIXME elaborate on this if it's really needed
 	private String sourceHost;
 	private String intermediateHost;
 	private String destHost;
@@ -128,6 +138,11 @@ public class MyNode extends Node {
 		this.destHost = destHost;
 		this.intermediateHost = intermediateHost;
 	}
+	
+    @Override //FIXME
+    public String toString() {
+        return "ID: "+this.getID()+" - Cost: "+this.getCost();
+    }
 
 	@Override
 	public String getFullRepresentationAsString(boolean printEdges) {

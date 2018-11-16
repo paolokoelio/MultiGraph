@@ -15,6 +15,7 @@ import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -62,7 +63,7 @@ public class AttackGraph implements DecisionInterface {
 	MainClass parent;
 	private boolean stop = false;
 	private static final String NEW_LINE_SEPARATOR = "\n";
-	private static final String FILE_HEADER = "nodeIds";
+	private static final String FILE_HEADER = "cost,nodeIds";
 	private static final String PAPER_PREFIX = "Wang_NetHard";
 	private static final String INPUT_AG_PATH = "files/AttackGraph.xml";
 	private static final String SOL_BASE_PATH = "files/solutions/";
@@ -133,14 +134,27 @@ public class AttackGraph implements DecisionInterface {
 //		nh.hardenApprox(1); //TODO check if needed approx. alg. (ForwardSearch)
 		List<Object> L = nh.getL();
 		log("Result - L:\n");
-
-		Expression dnfL = RuleSet.toDNF(this.getExpression(L));
+		System.out.println(L);
+		
+		Expression dnfL = RuleSet.toDNF(this.toExpression(L));
 		log(dnfL.toLexicographicString() + "\n");
 
+		
 		/* Write and log CSVs with plans */
-		List<String> rowsCSV = new ArrayList<String>();
-		rowsCSV = this.parseDNF(dnfL);
-		this.writeCSV(rowsCSV);
+		List<String> parsedStringSol = new ArrayList<String>();
+		parsedStringSol = this.dnfToList(dnfL);
+		
+		List<List<MyNode>> listSol = this.toList(parsedStringSol);
+
+		//test things
+		this.getNodeByID("n3").setCost(0.2);
+		this.getNodeByID("n4").setCost(0.6);
+		this.getNodeByID("n8").setCost(0.2);
+		
+		Collections.sort(listSol, new SolComparator<>());
+
+		this.writeCSV(listSol);
+		
 	}
 
 	/**
@@ -193,8 +207,13 @@ public class AttackGraph implements DecisionInterface {
 	// UTILS
 	// ========================================================================
 
+	/**
+	 * Get a L in jbool library format (Expression)
+	 * @param L List<Object> solutions
+	 * @return Expression logical expression
+	 */
 	@SuppressWarnings("unchecked")
-	public Expression getExpression(List<Object> L) {
+	public Expression toExpression(List<Object> L) {
 		Expression<String> trueL;
 		Expression[] ors = new Expression[L.size()];
 
@@ -216,7 +235,12 @@ public class AttackGraph implements DecisionInterface {
 		return trueL;
 	}
 
-	public List<String> parseDNF(Expression L) {
+	/**
+	 * Get a List<String> representation of the DNF form solution
+	 * @param L, solutions in DNF logical expression
+	 * @return parsed expression
+	 */
+	public List<String> dnfToList(Expression L) {
 
 		// remove first and last chars: ( and )
 		String parsedL = L.toLexicographicString().replaceAll("^.|.$", "");
@@ -233,15 +257,33 @@ public class AttackGraph implements DecisionInterface {
 
 		String lines[] = parsedL.split("\\n");
 
-		for (String line : lines) {
+		for (String line : lines)
 			sentence.add(line);
-		}
 
 		return sentence;
 	}
+	
+	/**
+	 * Get (un-parse) a List object of the DNF form solution (blame it on the jbool_expressons library)
+	 * @param String list
+	 * @return List<List<>> of instances of solutions
+	 */
+	private List<List<MyNode>> toList(List<String> solutions) {
+		List<List<MyNode>> orderedSolutions = new LinkedList<>();
+		
+		for (String solution : solutions) {
+			String[] sols = solution.split(",");
+			List<MyNode> tmpList = new LinkedList<>();
+			for (String str : sols) {
+					MyNode node = this.getNodeByID(str);
+					tmpList.add(node);
+			}
+			orderedSolutions.add(tmpList);
+		}
+		return orderedSolutions;
+	}
 
-	public void writeCSV(List<String> conds) {
-//		TODO extract this method to a Utils class, method de-duplication
+	public void writeCSV(List<List<MyNode>> conds) {
 		String path = PAPER_PREFIX;
 		Date date = new Date();
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
@@ -253,12 +295,19 @@ public class AttackGraph implements DecisionInterface {
 		try {
 			// Write the CSV file header
 			writer.append(FILE_HEADER.toString());
-
 			// Add a new line separator after the header
 			writer.append(NEW_LINE_SEPARATOR);
 
-			for (Iterator<String> iterator = conds.iterator(); iterator.hasNext();)
-				writer.append(iterator.next() + NEW_LINE_SEPARATOR);
+			for (Iterator<List<MyNode>> iterator = conds.iterator(); iterator.hasNext();) {
+				List<MyNode> sol = iterator.next();
+				String row = ""; double cost = 0d;
+				for (Iterator<MyNode> iterator2 = sol.iterator(); iterator2.hasNext();) {
+					MyNode node = iterator2.next();
+					row = row + "," + node.getID();
+					cost += node.getCost();
+				}
+				writer.append(cost + row + NEW_LINE_SEPARATOR);
+			}
 
 		} catch (Exception e) {
 			System.out.println("Error in Writer");

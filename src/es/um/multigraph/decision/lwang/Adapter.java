@@ -40,7 +40,8 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 	public static final String TYPE_AND = "AND";
 	public static final String TYPE_OR = "OR";
 	public static final String PREFIX_ID = "n";
-
+	private static final double DEFAULT_COST = 0.5;
+	
 	public Adapter() {
 		this.myNodes = new HashMap<Integer, MyNode>();
 		this.myEdges = new HashMap<String, MyEdge>();
@@ -63,14 +64,20 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 			
 			MyNode node = new MyNode(prependPrefix(PREFIX_ID, tmpNode.get("id")));
 			node.setTypeMulval(tmpNode.get("type"));
-			node.setLabel(tmpNode.get("fact"));
 			
-			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
-				node.setType(true);
+			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue())) {
+				node.setType(MyNode.EXPLOIT);
+				node.setTypeMulval(TYPE_OR); //not make it leaf
+			}
 			else
 				node.setType(false);
 			
-			//default state for an active node => true
+			
+			node.setLabel(tmpNode.get("fact"));
+			node.setCost(DEFAULT_COST);
+			
+			
+			// default state for an active node => true
 			node.setState(true);
 
 			this.myNodes.put(atoi(tmpNode.get("id")), node);
@@ -123,8 +130,8 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
 				exploitNode = toAndEdge.getFrom();
 
-			// if toAnd is a vulExist node => point the other toAnds to this vulExist and
-			// point vulExist to the dst of the other remaining edges
+//			if toAnd is a vulExist node => point the other toAnds to this vulExist and
+//			point vulExist to the dst of the other remaining edges
 			if (exploitNode != null) {
 
 //				First, re-point all siblings of expolitNode to him
