@@ -141,7 +141,7 @@ public class MyNode extends Node {
 	
     @Override //FIXME
     public String toString() {
-        return "ID: "+this.getID()+" - Cost: "+this.getCost();
+        return "ID: "+this.getID()+" - Cost: "+this.getCost() + " - " + this.getLabel();
     }
 
 	@Override

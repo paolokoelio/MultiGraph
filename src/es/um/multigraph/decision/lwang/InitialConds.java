@@ -3,6 +3,7 @@
  */
 package es.um.multigraph.decision.lwang;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import static org.junit.Assert.*;
@@ -169,10 +170,8 @@ public class InitialConds {
 	}
 
 	private boolean flattenPriv(List<Object> list) {
-
-		if (list.size() == 0) {
+		if (list.size() == 0)
 			return false;
-		}
 
 		boolean flag = false;
 
@@ -182,7 +181,6 @@ public class InitialConds {
 			flag = flattenPriv((List<Object>) list.get(0));
 
 		return flag;
-
 	}
 
 	/**

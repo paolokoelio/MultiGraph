@@ -20,6 +20,10 @@ public enum MulVALPrimitives {
     /**
      * AND (primitives)
      */
+    AND("AND"),
+    /**
+     * attackerLocated(TODO)
+     */
     ATTACKER("attackerLocated"),
     /**
      * hacl(_src, _dst, _prot, _port)
@@ -44,6 +48,7 @@ public enum MulVALPrimitives {
     /**
      * OR (aka derived primitives)
      */
+    OR("OR"),
     /**
      * execCode(_host, _permission)
      */

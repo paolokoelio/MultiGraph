@@ -66,8 +66,10 @@ public class AttackGraph implements DecisionInterface {
 	private static final String FILE_HEADER = "cost,nodeIds";
 	private static final String PAPER_PREFIX = "Wang_NetHard";
 	private static final String INPUT_AG_PATH = "files/AttackGraph.xml";
+//	private static final String INPUT_AG_PATH = "files/AttackGraph_3vul.xml";
 	private static final String SOL_BASE_PATH = "files/solutions/";
-	private static final String GOAL_NODE = "n1"; // FIXME
+	private static final String GOAL_NODE = "n31"; // FIXME
+//	 private static final String GOAL_NODE = "n1"; // FIXME
 
 	public AttackGraph() {
 		this.nodes = new LinkedList<>();
@@ -132,11 +134,13 @@ public class AttackGraph implements DecisionInterface {
 		NetworkHardening nh = new NetworkHardening(this, goals);
 		nh.harden();
 //		nh.hardenApprox(1); //TODO check if needed approx. alg. (ForwardSearch)
-		List<Object> L = nh.getL();
+//		List<Object> L = nh.getL();
+		Expression<String> L = nh.getLexpr();
 		log("Result - L:\n");
 		System.out.println(L);
 		
-		Expression dnfL = RuleSet.toDNF(this.toExpression(L));
+//		Expression dnfL = RuleSet.toDNF(this.toExpression(L));
+		Expression dnfL = RuleSet.toDNF(Not.of(L));
 		log(dnfL.toLexicographicString() + "\n");
 
 		
@@ -147,13 +151,26 @@ public class AttackGraph implements DecisionInterface {
 		List<List<MyNode>> listSol = this.toList(parsedStringSol);
 
 		//test things
-		this.getNodeByID("n3").setCost(0.2);
-		this.getNodeByID("n4").setCost(0.6);
-		this.getNodeByID("n8").setCost(0.2);
+		this.getNodeByID("n12").setCost(0.2);
+		this.getNodeByID("n41").setCost(0.6);
+//		this.getNodeByID("n8").setCost(0.2);
 		
 		Collections.sort(listSol, new SolComparator<>());
 
-		this.writeCSV(listSol);
+		// for testing
+		for (Iterator<List<MyNode>> iterator = listSol.iterator(); iterator.hasNext();) {
+			List<MyNode> sol = iterator.next();
+			String row = ""; double cost = 0d;
+			for (Iterator<MyNode> iterator2 = sol.iterator(); iterator2.hasNext();) {
+				MyNode node = iterator2.next();
+				row = row + "," + node.getID();
+				cost += node.getCost();
+			}
+			System.out.println(cost + row);
+		}
+		
+//		System.out.println(listSol);
+//		this.writeCSV(listSol);
 		
 	}
 
@@ -306,6 +323,7 @@ public class AttackGraph implements DecisionInterface {
 					row = row + "," + node.getID();
 					cost += node.getCost();
 				}
+//				System.out.println(cost + row);
 				writer.append(cost + row + NEW_LINE_SEPARATOR);
 			}
 

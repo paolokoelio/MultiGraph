@@ -1,6 +1,7 @@
 package es.um.multigraph.decision.lwang;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,6 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+
+import com.bpodgursky.jbool_expressions.And;
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Or;
+import com.bpodgursky.jbool_expressions.Variable;
+import com.bpodgursky.jbool_expressions.rules.RuleSet;
 
 import es.um.multigraph.decision.basegraph.Node;
 
@@ -26,6 +33,7 @@ public class NetworkHardening {
 	private List<MyNode> goals;
 	// Result of initials conditions to be negated
 	private List<Object> L;
+	Expression<String> Lexpr;
 	// Class useful to to store the result L of initials conditions to be negated
 	private InitialConds initConds = new InitialConds();
 	// Temporary FIFO queue to store search results
@@ -40,7 +48,8 @@ public class NetworkHardening {
 		this.queue = new LinkedList<MyNode>();
 		// result L
 		this.L = new LinkedList<Object>();
-		this.L.add(this.goals.get(0));
+		this.L.add(this.goals.get(0)); //just one goal at time
+		this.Lexpr = And.of(Variable.of(this.goals.get(0).getID()));
 		this.preE = new HashMap<MyNode, List<MyNode>>();
 		this.preC = new HashMap<MyNode, List<MyNode>>();
 
@@ -102,15 +111,18 @@ public class NetworkHardening {
 					continue;
 
 				// T = (e1 v e2 v .. en)
-				List<MyNode> T = new ArrayList<MyNode>();
-
-//				System.out.println("parentExploits: " + parentExploits);
-
+//				List<MyNode> T = new ArrayList<MyNode>();
+				List<Expression<String>> Ttmp = new LinkedList<>();
+				Expression<String> Texpr = null;
+				
+				
 				for (Iterator<?> eIter = parentExploits.iterator(); eIter.hasNext();) {
 					MyNode e = (MyNode) eIter.next();
-					T.add(e);
+					Ttmp.add(Variable.of(e.getID()));
+//					T.add(e);
 				}
-
+				Texpr = Or.of(Ttmp);
+				
 				/*
 				 * for each ei belonging to Se intersected with Pre(c)
 				 */
@@ -120,37 +132,44 @@ public class NetworkHardening {
 				for (Iterator<?> iterator2 = intersection.iterator(); iterator2.hasNext();) {
 					MyNode e = (MyNode) iterator2.next();
 					// set e with false in T
-					// FIXME create a dummy condition/expl. to function as FALSE in the log. prop.
-					if (T.remove(e)) {
-						e.setState(false);
-						T.add(e);
-					}
+					Texpr = RuleSet.assign(Texpr, Collections.singletonMap(e.getID(), false));
+					
+//					if (T.remove(e)) {
+//						e.setState(false);
+//						T.add(e);
+//					}
 				}
 
 				// replace c with T in L //JVM doesn't know types, I do so it's ok
-				this.L = this.initConds.replaceEl((List<Object>) (List<?>) T, nodeQ, this.L);
-
+//				this.L = this.initConds.replaceEl((List<Object>) (List<?>) T, nodeQ, this.L);
+				this.Lexpr = this.Lexpr.replaceVars(Collections.singletonMap(nodeQ.getID(), Texpr));
+				
 				// for each ei belongs to Se - Pre(c)
 				Set<Node> diff = new HashSet<Node>(parentExploits);
 				diff.removeAll(this.preC.get(nodeQ));
 
-//				System.out.println("Se - Pre(c): " + diff);
+				System.out.println("Se - Pre(c): " + diff);
 
 				// equivalent to the loop down here
 				for (Node node : diff) {
-					// equeue ei in Q
+					// enqueue ei in Q
 					this.queue.add((MyNode) node);
 
 					// Let Pre(ei) = Pre(ei) union Pre(c)
-					this.preE.get((MyNode) node).addAll(this.preC.get(nodeQ));
+					if(this.preE.containsKey((MyNode) node))
+						this.preE.get((MyNode) node).addAll(this.preC.get(nodeQ));
+					else {
+						this.preE.put((MyNode) node, this.preC.get(nodeQ));
+					}
+
 				}
 
 				// check
 //				System.out.println("T: " + T);
 //				System.out.println("Q: " + this.queue);
 
+				
 				// end for each c dequeued from Q
-
 			} else if (nodeQ.getTypeBool() == MyNode.EXPLOIT) {
 
 				// Sc = {c1, c2, .. cm}
@@ -164,13 +183,17 @@ public class NetworkHardening {
 					continue;
 
 				// T = (c1 & c2 & .. cm)
-				List<MyNode> T = new ArrayList<MyNode>();
+//				List<MyNode> T = new ArrayList<MyNode>();
+				List<Expression<String>> Ttmp = new LinkedList<>();
+				Expression<String> Texpr = null;
 
 				for (Iterator<?> cIter = parentConds.iterator(); cIter.hasNext();) {
 					MyNode c = (MyNode) cIter.next();
-					T.add(c);
+					Ttmp.add(Variable.of(c.getID()));
+//					T.add(c);
 				}
-
+				Texpr = And.of(Ttmp);
+				
 				/*
 				 * for each ci belonging to Sc intersected with Pre(e)
 				 */
@@ -179,27 +202,36 @@ public class NetworkHardening {
 
 				for (Iterator<?> iterator2 = intersection.iterator(); iterator2.hasNext();) {
 					MyNode c = (MyNode) iterator2.next();
-					// set e with false in T
-					if (T.remove(c)) {
-						c.setState(false);
-						T.add(c);
-					}
+					// set c with false in T
+					Texpr = RuleSet.assign(Texpr, Collections.singletonMap(c.getID(), false));
+//					if (T.remove(c)) {
+//						c.setState(false);
+//						T.add(c);
+//					}
 				}
 
 				// replace c with T in L
-				this.L = this.initConds.replaceEl((List<Object>) (List<?>) T, nodeQ, this.L);
+//				this.L = this.initConds.replaceEl((List<Object>) (List<?>) T, nodeQ, this.L);
+				this.Lexpr = this.Lexpr.replaceVars(Collections.singletonMap(nodeQ.getID(), Texpr));
 
-				// for each ei belongs to Se - Pre(c)
+				// for each ci belongs to Sc - Pre(e)
 				Set<Node> diff = new HashSet<Node>(parentConds);
 				diff.removeAll(this.preE.get(nodeQ));
 
+				System.out.println("Se - Pre(e) " + diff);
+				
 				// equivalent to the loop down here
 				for (Node node : diff) {
 					// equeue ei in Q
 					this.queue.add((MyNode) node);
 
 					// Let Pre(ei) = Pre(ei) union Pre(c)
-					this.preC.get((MyNode) node).addAll(this.preE.get(nodeQ));
+					if(this.preC.containsKey((MyNode) node))
+						this.preC.get((MyNode) node).addAll(this.preE.get(nodeQ));
+					else {
+						this.preC.put((MyNode) node, this.preE.get(nodeQ));
+					}
+					
 				}
 
 				// check
@@ -211,8 +243,10 @@ public class NetworkHardening {
 //			System.out.println("L: " + L);
 		}
 
-		this.L = initConds.flatten(L);
+//		this.L = initConds.flatten(L);
 //		System.out.println("Logical prop. to be negated L: \n" + this.L);
+	    this.Lexpr = RuleSet.simplify(this.Lexpr);
+		System.out.println("Expression L " + this.Lexpr.toLexicographicString());
 
 		return null;
 	}
@@ -231,6 +265,10 @@ public class NetworkHardening {
 
 	public List<Object> getL() {
 		return L;
+	}
+	
+	public Expression<String> getLexpr() {
+		return this.Lexpr;
 	}
 
 }

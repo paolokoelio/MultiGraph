@@ -60,7 +60,6 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 			HashMap<String, String> tmpNode = iter.next();
 
 			ArrayList<String> facts = extractFacts(tmpNode.get("fact"));
-
 			
 			MyNode node = new MyNode(prependPrefix(PREFIX_ID, tmpNode.get("id")));
 			node.setTypeMulval(tmpNode.get("type"));
@@ -70,7 +69,7 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 				node.setTypeMulval(TYPE_OR); //not make it leaf
 			}
 			else
-				node.setType(false);
+				node.setType(MyNode.CONDITION);
 			
 			
 			node.setLabel(tmpNode.get("fact"));
@@ -120,16 +119,41 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 		List<String> purgeEdgeList = new ArrayList<String>();
 		List<String> purgeNodeList = new ArrayList<String>();
 		Map<String, MyEdge> bufferUpdatedEdges = new HashMap<String, MyEdge>();
-		Node exploitNode = null;
+		
 
 		for (Iterator<String> iter = this.myToAndEdges.keySet().iterator(); iter.hasNext();) {
 			MyEdge toAndEdge = this.myToAndEdges.get(iter.next());
 
 			ArrayList<String> facts = extractFacts(toAndEdge.getFrom().getLabel());
-
-			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
-				exploitNode = toAndEdge.getFrom();
-
+			
+			Node exploitNode = null;
+			MyNode myExploitNode = null;
+			MyNode andNode = (MyNode) toAndEdge.getTo();
+			
+			// FIXME set enum
+			String predicate = facts.get(0);
+			boolean isVul = predicate.equals(MulVALPrimitives.VULN.getValue());
+			boolean isNfsExportInfo = predicate.equals("nfsExportInfo");
+			boolean isInCompetent = predicate.equals("inCompetent");
+			boolean isAccessFile = predicate.equals("accessFile");
+			boolean isHacl = predicate.equals("hacl");
+			boolean isAndNode = andNode.getTypeMulval().equals("AND");
+			
+			if (isVul || isNfsExportInfo || isInCompetent) {
+				if((isAccessFile && isAndNode) || (isHacl && isAndNode))
+					exploitNode = toAndEdge.getTo();
+				else
+					exploitNode = toAndEdge.getFrom();
+				myExploitNode = (MyNode) exploitNode;
+				myExploitNode.setType(MyNode.EXPLOIT);
+				exploitNode = myExploitNode;
+			}
+			
+//			myExploitNode.setType(MyNode.EXPLOIT); 
+//			myExploitNode.setTypeMulval(TYPE_OR);
+//			exploitNode = myExploitNode;
+//			System.out.println(exploitNode);
+			
 //			if toAnd is a vulExist node => point the other toAnds to this vulExist and
 //			point vulExist to the dst of the other remaining edges
 			if (exploitNode != null) {
@@ -165,16 +189,17 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 //						System.out.println("Repointing exploitEdge " + edge.getID());
 //						Third, remove that AND node
 						purgeNodeList.add(toAndEdge.getTo().getID());
-						toAndEdge.setTo(edge.getTo());
-
+						// toAndEdge.setTo(edge.getTo());
+						MyEdge newEdge = new MyEdge(exploitNode.getID() + "." + edge.getTo().getID(), (MyNode) exploitNode, (MyNode) edge.getTo());
 						// set the decomposition to OR for terminal incoming edges/different exploit
 						// nodes
-						toAndEdge.setDecomposition(DECOMPOSITION_OR);
-
+						// toAndEdge.setDecomposition(DECOMPOSITION_OR);
+						newEdge.setDecomposition(DECOMPOSITION_OR);
+						
 						purgeEdgeList.add(toAndEdge.getID());
 						purgeEdgeList.add(edge.getID());
-						toAndEdge.setID(toAndEdge.getFrom().getID() + "." + edge.getTo().getID());
-						bufferUpdatedEdges.put(toAndEdge.getID(), toAndEdge);
+						// toAndEdge.setID(toAndEdge.getFrom().getID() + "." + edge.getTo().getID());
+						bufferUpdatedEdges.put(newEdge.getID(), newEdge);
 					}
 
 				} // end of second for over bayesianToAndEdges

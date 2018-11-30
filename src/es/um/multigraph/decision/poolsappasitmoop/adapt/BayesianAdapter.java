@@ -26,7 +26,8 @@ public class BayesianAdapter implements Adapter {
 	public static final String TYPE_AND = "AND";
 	public static final String TYPE_OR = "OR";
 
-	public static final double DUMMY_EXPECTED_GAIN = 0.5;
+	public static final double DUMMY_EXPECTED_GAIN = 1;
+	public static final double DUMMY_EXPECTED_LOSS = 1;
 	public static final double DUMMY_EDGE_PROB = 0.6;
 
 //	private static final Double DEFAULT_UNC_PR = 1.0;
@@ -66,6 +67,7 @@ public class BayesianAdapter implements Adapter {
 			bsNode.setLabel(tmpNode.get("fact"));
 
 			bsNode.setExpectedGain(DUMMY_EXPECTED_GAIN);
+			bsNode.setExpectedLoss(DUMMY_EXPECTED_LOSS);
 //			if (tmpNode.get("type").equals("LEAF")) // TODO set static
 //				bsNode.setPriorPr(DEFAULT_PRIOR_PR);
 

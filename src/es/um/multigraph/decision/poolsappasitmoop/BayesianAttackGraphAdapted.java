@@ -338,7 +338,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		fl.readFile("files/AttackGraph.xml");
+		fl.readFile("files/AttackGraph_3vul.xml");
 
 		bs.setFile(fl);
 		
@@ -365,7 +365,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		log("BAG parsed and converted\n");
 		
 		//setting big loss for goal node
-		((BayesianNodeAdapted) this.getNodeByID("n10")).setExpectedLoss(20d);
+		((BayesianNodeAdapted) this.getNodeByID("n10")).setExpectedLoss(200d);
 		
 		/*
 		 * Generating LGs before applying CMs, we'll need that for later
@@ -457,7 +457,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				}
 			
 			//FIXME static file name
-			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
+			System.out.println("Plan" + j + ": " + rowsCSV);
+//			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
 			j++;
 		}
 
@@ -466,8 +467,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
 				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
 		
-//		Plot plot = new Plot();
-//		plot.add("NSGAII", moop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
+		Plot plot = new Plot();
+		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
 		
 	}
 	
