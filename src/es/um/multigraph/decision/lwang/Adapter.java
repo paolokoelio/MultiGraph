@@ -194,7 +194,7 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 						// set the decomposition to OR for terminal incoming edges/different exploit
 						// nodes
 						// toAndEdge.setDecomposition(DECOMPOSITION_OR);
-						newEdge.setDecomposition(DECOMPOSITION_OR);
+						newEdge.setDecomposition(DECOMPOSITION_OR); //not needed here
 						
 						purgeEdgeList.add(toAndEdge.getID());
 						purgeEdgeList.add(edge.getID());

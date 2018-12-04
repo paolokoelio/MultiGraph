@@ -30,7 +30,7 @@ public class BayesianAdapter implements Adapter {
 	public static final double DUMMY_EXPECTED_LOSS = 1;
 	public static final double DUMMY_EDGE_PROB = 0.6;
 
-//	private static final Double DEFAULT_UNC_PR = 1.0;
+	private static final Double DEFAULT_UNC_PR = 1.0;
 	private static final Double DEFAULT_PRIOR_PR = 1.0;
 
 	public static final String PREFIX_ID = "n";
@@ -99,6 +99,9 @@ public class BayesianAdapter implements Adapter {
 				flagDecomp = DECOMPOSITION_AND;
 				this.bayesianToAndEdges.put(bsEdge.getID(), bsEdge);
 			}
+			
+			// necessary for the edges with nodes that are not exploit nodes.
+			bsEdge.setOverridePrActivable(DEFAULT_UNC_PR);
 
 			bsEdge.setDecomposition(flagDecomp);
 
@@ -115,16 +118,36 @@ public class BayesianAdapter implements Adapter {
 		List<String> purgeEdgeList = new ArrayList<String>();
 		List<String> purgeNodeList = new ArrayList<String>();
 		Map<String, BayesianEdgeAdapted> bufferUpdatedEdges = new HashMap<String, BayesianEdgeAdapted>();
-		Node exploitNode = null;
+//		Node exploitNode = null;
 
 		for (Iterator<String> iter = this.bayesianToAndEdges.keySet().iterator(); iter.hasNext();) {
 			BayesianEdgeAdapted toAndEdge = this.bayesianToAndEdges.get(iter.next());
 
 			ArrayList<String> facts = extractFacts(toAndEdge.getFrom().getLabel());
 
-			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
-				exploitNode = toAndEdge.getFrom();
-
+			Node exploitNode = null;
+//			BayesianNodeAdapted myExploitNode = null;
+			BayesianNodeAdapted andNode = (BayesianNodeAdapted) toAndEdge.getTo();
+			
+			// FIXME set enum
+			String predicate = facts.get(0);
+			boolean isVul = predicate.equals(MulVALPrimitives.VULN.getValue());
+			boolean isNfsExportInfo = predicate.equals("nfsExportInfo");
+			boolean isInCompetent = predicate.equals("inCompetent");
+			boolean isAccessFile = predicate.equals("accessFile");
+			boolean isHacl = predicate.equals("hacl");
+			boolean isAndNode = andNode.getType().equals("AND");
+			
+//			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
+//				exploitNode = toAndEdge.getFrom();
+			
+			if (isVul || isNfsExportInfo || isInCompetent) {
+				if((isAccessFile && isAndNode) || (isHacl && isAndNode))
+					exploitNode = toAndEdge.getTo();
+				else
+					exploitNode = toAndEdge.getFrom();
+			}
+			
 			// if toAnd is a vulExist node => point the other toAnds to this vulExist and
 			// point vulExist to the dst of the other remaining edges
 			if (exploitNode != null) {
@@ -146,7 +169,11 @@ public class BayesianAdapter implements Adapter {
 						// edges of the vulnerability attribute
 						// because we don't know exactly what is the edge prob of an edge pointing to
 						// the vulnerability attribute
-						edge.setOverridePrActivable(0.01 * atoi(facts.get(3)));
+//						edge.setOverridePrActivable(0.01 * atoi(facts.get(3))); //FIXME
+						
+						// get in edges of exploitNode and if this is a cvss node
+						// get its fact(2) (the AC) and setPr
+						// otherwise setPr with 1
 
 						purgeEdgeList.add(edge.getID());
 						edge.setID(edge.getFrom().getID() + "." + exploitNode.getID());
@@ -166,22 +193,25 @@ public class BayesianAdapter implements Adapter {
 //						System.out.println("Repointing exploitEdge " + edge.getID());
 //						Third, remove that AND node
 						purgeNodeList.add(toAndEdge.getTo().getID());
-						toAndEdge.setTo(edge.getTo());
+						
+//						toAndEdge.setTo(edge.getTo());
 
 						// set the edge CVSS-based probability, we set the prob. to both in and out
 						// edges of the vulnerability attribute
 						// because we don't know exactly what is the edge prob of an edge pointing to
 						// the vulnerability attribute
-						toAndEdge.setOverridePrActivable(0.01 * atoi(facts.get(3)));
+//						toAndEdge.setOverridePrActivable(0.01 * atoi(facts.get(3))); //FIXME NEED TO REMOVE THIS
 
+						BayesianEdgeAdapted newEdge = new BayesianEdgeAdapted(exploitNode.getID() + "." + edge.getTo().getID(), (BayesianNodeAdapted) exploitNode, (BayesianNodeAdapted) edge.getTo());
 						// set the decomposition to OR for terminal incoming edges/different exploit
 						// nodes
-						toAndEdge.setDecomposition(DECOMPOSITION_OR);
+						newEdge.setDecomposition(DECOMPOSITION_OR);
+						newEdge.setOverridePrActivable(DEFAULT_UNC_PR);
 
 						purgeEdgeList.add(toAndEdge.getID());
 						purgeEdgeList.add(edge.getID());
-						toAndEdge.setID(toAndEdge.getFrom().getID() + "." + edge.getTo().getID());
-						bufferUpdatedEdges.put(toAndEdge.getID(), toAndEdge);
+//						toAndEdge.setID(toAndEdge.getFrom().getID() + "." + edge.getTo().getID());
+						bufferUpdatedEdges.put(newEdge.getID(), newEdge);
 					}
 
 					// set priorPr to leaf nodes explicitly excluding the exploit nodes (vulExists
@@ -191,7 +221,6 @@ public class BayesianAdapter implements Adapter {
 						((BayesianNode) edge.getFrom()).setPriorPr(DEFAULT_PRIOR_PR);
 
 				} // end of second for over bayesianToAndEdges
-
 			} // end if(exploitNode != null)
 		}
 
@@ -202,6 +231,8 @@ public class BayesianAdapter implements Adapter {
 			this.bayesianNodes.remove(atoi(removePrefix(iter.next())));
 
 		this.bayesianEdges.putAll(bufferUpdatedEdges);
+		
+//		this.updateMetrics();
 	}
 
 	/**
@@ -209,7 +240,7 @@ public class BayesianAdapter implements Adapter {
 	 * position e.g. vulExist(facts..., vulExists, fileServer, 'CVE-7777', 40, nfs)
 	 * => [vulExists, fileServer, 'CVE-7777', 40, nfs]
 	 */
-	private ArrayList<String> extractFacts(String facts) {
+	public ArrayList<String> extractFacts(String facts) {
 
 		ArrayList<String> factList = new ArrayList<String>();
 		String[] splitString = (facts.split("\\("));

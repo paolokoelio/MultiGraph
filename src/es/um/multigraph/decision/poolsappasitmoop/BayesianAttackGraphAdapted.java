@@ -338,7 +338,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		fl.readFile("files/AttackGraph_3vul.xml");
+		fl.readFile("files/AttackGraph1.xml");
 
 		bs.setFile(fl);
 		
@@ -359,13 +359,25 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet())
 			this.addNode(entry.getValue());
 
-		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet())
+		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet()) {
 			this.addEdge(entry.getValue());
+			log(entry.getValue().getID() + " " + entry.getValue().getPrActivable() + "\n");
+		}
+		
+		this.updateMetrics(myNodes); //TODO
 		
 		log("BAG parsed and converted\n");
 		
+		for (Iterator iterator = this.getEdges().iterator(); iterator.hasNext();) {
+			BayesianEdgeAdapted edge = (BayesianEdgeAdapted) iterator.next();
+			log(edge.getID() + " " + edge.getPrActivable() + "\n");
+
+		}
+		
 		//setting big loss for goal node
-		((BayesianNodeAdapted) this.getNodeByID("n10")).setExpectedLoss(200d);
+		((BayesianNodeAdapted) this.getNodeByID("n34")).setExpectedLoss(200d);
+		((BayesianNodeAdapted) this.getNodeByID("n1")).setExpectedLoss(200d);
+
 		
 		/*
 		 * Generating LGs before applying CMs, we'll need that for later
@@ -470,6 +482,41 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		Plot plot = new Plot();
 		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
 		
+	}
+	
+	private void updateMetrics(Map<Integer, BayesianNodeAdapted> myNodes) {
+		BayesianNodeAdapted node = null;
+		String label = null; ArrayList<String> facts = null;
+		for (Integer entry : myNodes.keySet()) {
+			node = myNodes.get(entry);
+			label = node.getLabel();
+			facts = (new BayesianAdapter()).extractFacts(node.getLabel());
+			
+			if(facts.get(0).equals("cvss")) {//FIXME
+				String fact = facts.get(2);
+				double score = 0;
+				switch (fact) {
+				case "l":
+					score = 0.99;
+					break;
+				case "m":
+					score = 0.66;
+					break;
+				case "h":
+					score = 0.33;
+					break;
+				}
+				Node exp = node.getOut().iterator().next().getTo();
+					for (Iterator<Edge> iterator = exp.getOut().iterator(); iterator.hasNext();) {
+						BayesianEdgeAdapted edg = (BayesianEdgeAdapted) iterator.next();
+						edg.setOverridePrActivable(score);
+					}
+				
+			} else {
+				
+			}
+				
+		}
 	}
 	
 	/**

@@ -65,7 +65,7 @@ public class AttackGraph implements DecisionInterface {
 	private static final String NEW_LINE_SEPARATOR = "\n";
 	private static final String FILE_HEADER = "cost,nodeIds";
 	private static final String PAPER_PREFIX = "Wang_NetHard";
-	private static final String INPUT_AG_PATH = "files/AttackGraph.xml";
+	private static final String INPUT_AG_PATH = "files/AttackGraph1.xml";
 //	private static final String INPUT_AG_PATH = "files/AttackGraph_3vul.xml";
 	private static final String SOL_BASE_PATH = "files/solutions/";
 	private static final String GOAL_NODE = "n31"; // FIXME
@@ -151,8 +151,8 @@ public class AttackGraph implements DecisionInterface {
 		List<List<MyNode>> listSol = this.toList(parsedStringSol);
 
 		//test things
-		this.getNodeByID("n12").setCost(0.2);
-		this.getNodeByID("n41").setCost(0.6);
+//		this.getNodeByID("n12").setCost(0.2);
+//		this.getNodeByID("n41").setCost(0.6);
 //		this.getNodeByID("n8").setCost(0.2);
 		
 		Collections.sort(listSol, new SolComparator<>());
