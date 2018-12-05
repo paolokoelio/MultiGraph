@@ -339,6 +339,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 		FileUtils fl = new FileUtils();
 		fl.readFile("files/AttackGraph1.xml");
+		String goalNode = "n1";
 
 		bs.setFile(fl);
 		
@@ -364,29 +365,30 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			log(entry.getValue().getID() + " " + entry.getValue().getPrActivable() + "\n");
 		}
 		
-		this.updateMetrics(myNodes); //TODO
+		this.updateMetrics(myNodes);
 		
 		log("BAG parsed and converted\n");
 		
 		for (Iterator iterator = this.getEdges().iterator(); iterator.hasNext();) {
 			BayesianEdgeAdapted edge = (BayesianEdgeAdapted) iterator.next();
 			log(edge.getID() + " " + edge.getPrActivable() + "\n");
-
 		}
 		
-		//setting big loss for goal node
-		((BayesianNodeAdapted) this.getNodeByID("n34")).setExpectedLoss(200d);
-		((BayesianNodeAdapted) this.getNodeByID("n1")).setExpectedLoss(200d);
+		//setting big loss/gain for goal node
+		((BayesianNodeAdapted) this.getNodeByID(goalNode)).setExpectedLoss(100d);
+//		((BayesianNodeAdapted) this.getNodeByID(goalNode)).setExpectedGain(100d);
 
 		
 		/*
 		 * Generating LGs before applying CMs, we'll need that for later
 		 */
 		exlg = new LinkedHashMap<String, Double>();
+		Map<String, Double> exlgPrev = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
-		this.computeUnconditionalProbability(true);
+		this.computeUnconditionalProbability(false); //TODO
 		
-		//HEREWAS exlg preservaton before adding CMs
+		exlgPrev = exlg;
+		exlg = new LinkedHashMap<String, Double>();
 		
 		/*
 		 * Automatically generating CMs for compatible nodes as defined in (by me)
@@ -425,15 +427,17 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		/* Computing LGs after applying the CMs */
 		Map<String, Double> exlgAfter = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
-		this.computeUnconditionalProbability(true);
+		this.computeUnconditionalProbability(true); //TODO long
 		
-		for (BayesianNode n : this.BAG) 
-			exlgAfter.put(n.getID(),n.getExpectedLossGain());
+		exlgAfter = exlg;
+		
+//		for (BayesianNode n : this.BAG) 
+//			exlgAfter.put(n.getID(),n.getExpectedLossGain());
 		
 		log("Starting MOOP procedures\n");
 		
 		MOOPUtils utMoop = new MOOPUtils();
-		utMoop.setLGs(exlg);
+		utMoop.setLGs(exlgPrev);
 		utMoop.setLGsAfter(exlgAfter);
 		utMoop.genNodesLGs();
 
@@ -450,7 +454,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		List<List<String>> secPlans = new ArrayList<List<String>>();
 		
 		utMoop.setCmIds(bGen.getCmIds());
-		secPlans = utMoop.resolve(moop, "NSGAII", 100);
+		secPlans = utMoop.resolve(moop, "NSGAII", 1000);
 		
 		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
 			this.disableCM(iter.next());
@@ -471,28 +475,32 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			//FIXME static file name
 			System.out.println("Plan" + j + ": " + rowsCSV);
 //			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
+			rowsCSV = new ArrayList<String>();
 			j++;
 		}
 
-		 /* Apply first secPlan*/
-		if(!secPlans.isEmpty())
-			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
-				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
+		/* Apply first secPlan */
+//		if(!secPlans.isEmpty())
+//			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
+//				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
 		
 		Plot plot = new Plot();
 		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
 		
 	}
 	
+	/**
+	 * Extract edge probability (PrActivable) from cvss nodes
+	 * @param myNodes all BAG's nodes
+	 */
 	private void updateMetrics(Map<Integer, BayesianNodeAdapted> myNodes) {
 		BayesianNodeAdapted node = null;
-		String label = null; ArrayList<String> facts = null;
+		ArrayList<String> facts = null;
 		for (Integer entry : myNodes.keySet()) {
 			node = myNodes.get(entry);
-			label = node.getLabel();
 			facts = (new BayesianAdapter()).extractFacts(node.getLabel());
 			
-			if(facts.get(0).equals("cvss")) {//FIXME
+			if(facts.get(0).equals("cvss")) { //FIXME static etc
 				String fact = facts.get(2);
 				double score = 0;
 				switch (fact) {
@@ -521,8 +529,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	
 	/**
 	 * Retrieve a node by its ID.
-	 * @param id
-	 * @return Node
+	 * @param id String id of the node
+	 * @return Node the actual node under that id
 	 */
 	private Node getNodeByID(String id) {
 		for (Iterator iterator = this.getNodes().iterator(); iterator.hasNext();) {
@@ -547,7 +555,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			ArrayList<Boolean> nodesStates = null;
 			double prTrue = BayesianCMGenerator.getDefaultPrtrue(); double prFalse = BayesianCMGenerator.getDefaultPrfalse();
 			
-			/* Get every out Edge of every CM node (they point only to vulExists nodes) */
+			/* Get every out Edge of every CM node (they point only to Exploit nodes) */
 		    for (Edge out : cm.getOut()) {
 		    	siblingNodesID = new ArrayList<String>();
 		    	nodesStates = new ArrayList<Boolean>();
@@ -567,7 +575,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			    /* Generate true-false combinations for every sibling node by performing OR operation against string bit combinations and the t-f array */
 		        double size = siblingNodesID.size();
 		        for (int j = 0; j < Math.pow(2,size); j++) {
-			    	/* Generate " bit string" */
+			    	/* Generate "bit string" */
 			        String str = Integer.toBinaryString(j);
 			        /* pad with zeros */
 			        while(str.length() < size)
@@ -582,9 +590,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			        
 			        /* Send this transaction to SQL */
 			        this.LCPD_SQL_updatePr(siblingNodesID.toArray(new String[siblingNodesID.size()]), nodesStates.toArray(new Boolean[nodesStates.size()]), out.getTo().getID(), prTrue, prFalse);
-			        
-//				        System.out.println(nodesStates);	//debug
-//				        System.out.println(siblingNodesID);	//debug
 			        
 			        /* Remove current CM node and state */
 			        siblingNodesID.remove(siblingNodesID.size()-1);

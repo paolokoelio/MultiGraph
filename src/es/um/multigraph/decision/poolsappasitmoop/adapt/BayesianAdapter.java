@@ -28,9 +28,9 @@ public class BayesianAdapter implements Adapter {
 
 	public static final double DUMMY_EXPECTED_GAIN = 1;
 	public static final double DUMMY_EXPECTED_LOSS = 1;
-	public static final double DUMMY_EDGE_PROB = 0.6;
+//	public static final double DUMMY_EDGE_PROB = 0.6;
 
-	private static final Double DEFAULT_UNC_PR = 1.0;
+	private static final Double DEFAULT_PR_ACTIVABLE = 1.0;
 	private static final Double DEFAULT_PRIOR_PR = 1.0;
 
 	public static final String PREFIX_ID = "n";
@@ -51,7 +51,7 @@ public class BayesianAdapter implements Adapter {
 	}
 
 	/**
-	 * Instantiate and populate BayesianNodesAdapted (see doc
+	 * Instantiate and populate BayesianNodesAdapted (see doc)
 	 * {@link} BayesianNodesAdapted}.
 	 */
 	public void convertNodes() {
@@ -84,7 +84,7 @@ public class BayesianAdapter implements Adapter {
 			HashMap<String, String> tmpEdge = iter.next();
 
 			// here src and dst are inverted, because in mulVAL output they seem actually
-			// inveretd
+			// inverted
 			BayesianNodeAdapted dst = this.bayesianNodes.get(atoi(tmpEdge.get("src")));
 			BayesianNodeAdapted src = this.bayesianNodes.get(atoi(tmpEdge.get("dst")));
 
@@ -101,7 +101,7 @@ public class BayesianAdapter implements Adapter {
 			}
 			
 			// necessary for the edges with nodes that are not exploit nodes.
-			bsEdge.setOverridePrActivable(DEFAULT_UNC_PR);
+			bsEdge.setOverridePrActivable(DEFAULT_PR_ACTIVABLE);
 
 			bsEdge.setDecomposition(flagDecomp);
 
@@ -129,6 +129,7 @@ public class BayesianAdapter implements Adapter {
 //			BayesianNodeAdapted myExploitNode = null;
 			BayesianNodeAdapted andNode = (BayesianNodeAdapted) toAndEdge.getTo();
 			
+			//define node types as per mulVAL rule files
 			// FIXME set enum
 			String predicate = facts.get(0);
 			boolean isVul = predicate.equals(MulVALPrimitives.VULN.getValue());
@@ -141,6 +142,7 @@ public class BayesianAdapter implements Adapter {
 //			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
 //				exploitNode = toAndEdge.getFrom();
 			
+			//decide which available node type has to replace a mulVAL AND node
 			if (isVul || isNfsExportInfo || isInCompetent) {
 				if((isAccessFile && isAndNode) || (isHacl && isAndNode))
 					exploitNode = toAndEdge.getTo();
@@ -169,7 +171,7 @@ public class BayesianAdapter implements Adapter {
 						// edges of the vulnerability attribute
 						// because we don't know exactly what is the edge prob of an edge pointing to
 						// the vulnerability attribute
-//						edge.setOverridePrActivable(0.01 * atoi(facts.get(3))); //FIXME
+//						edge.setOverridePrActivable(0.01 * atoi(facts.get(3))); //FIXME no more needed
 						
 						// get in edges of exploitNode and if this is a cvss node
 						// get its fact(2) (the AC) and setPr
@@ -200,13 +202,13 @@ public class BayesianAdapter implements Adapter {
 						// edges of the vulnerability attribute
 						// because we don't know exactly what is the edge prob of an edge pointing to
 						// the vulnerability attribute
-//						toAndEdge.setOverridePrActivable(0.01 * atoi(facts.get(3))); //FIXME NEED TO REMOVE THIS
+//						toAndEdge.setOverridePrActivable(0.01 * atoi(facts.get(3))); //FIXME no more needed
 
 						BayesianEdgeAdapted newEdge = new BayesianEdgeAdapted(exploitNode.getID() + "." + edge.getTo().getID(), (BayesianNodeAdapted) exploitNode, (BayesianNodeAdapted) edge.getTo());
 						// set the decomposition to OR for terminal incoming edges/different exploit
 						// nodes
 						newEdge.setDecomposition(DECOMPOSITION_OR);
-						newEdge.setOverridePrActivable(DEFAULT_UNC_PR);
+						newEdge.setOverridePrActivable(DEFAULT_PR_ACTIVABLE);
 
 						purgeEdgeList.add(toAndEdge.getID());
 						purgeEdgeList.add(edge.getID());

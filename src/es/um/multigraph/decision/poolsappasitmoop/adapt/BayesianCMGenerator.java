@@ -46,12 +46,21 @@ public class BayesianCMGenerator {
 
 	public void generateCMs() {
 
+		
+		String vul = MulVALPrimitives.VULN.getValue();
+		String nfsExportInfo = "nfsExportInfo";
+		String inCompetent = "inCompetent";
+/*		String accessFile = "accessFile";
+		String hacl = "hacl";*/
+		
 		for (Iterator<? extends Node> iterator = this.bag.iterator(); iterator.hasNext();) {
 
 			BayesianNode node = (BayesianNode) iterator.next();
 
 			ArrayList<String> facts = extractFacts(node.getLabel());
-			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue())) {
+			String type = facts.get(0);
+			
+			if (type.equals(vul) || type.equals(nfsExportInfo) || type.equals(inCompetent)) {
 
 				// FIXME make it decent here
 				String nodeId = "p" + node.getID();
