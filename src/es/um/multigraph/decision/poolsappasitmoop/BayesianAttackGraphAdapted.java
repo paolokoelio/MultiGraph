@@ -338,8 +338,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		fl.readFile("files/AttackGraph1.xml");
-		String goalNode = "n1";
+		fl.readFile("files/AttackGraph2.xml");
+		String goalNode = "n20";
 
 		bs.setFile(fl);
 		
@@ -474,7 +474,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			
 			//FIXME static file name
 			System.out.println("Plan" + j + ": " + rowsCSV);
-//			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
+			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
 			rowsCSV = new ArrayList<String>();
 			j++;
 		}

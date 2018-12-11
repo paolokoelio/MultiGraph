@@ -65,11 +65,11 @@ public class AttackGraph implements DecisionInterface {
 	private static final String NEW_LINE_SEPARATOR = "\n";
 	private static final String FILE_HEADER = "cost,nodeIds";
 	private static final String PAPER_PREFIX = "Wang_NetHard";
-	private static final String INPUT_AG_PATH = "files/AttackGraph4.xml";
+	private static final String INPUT_AG_PATH = "files/AttackGraph2.xml";
 //	private static final String INPUT_AG_PATH = "files/AttackGraph_3vul.xml";
 	private static final String SOL_BASE_PATH = "files/solutions/";
 //	private static final String GOAL_NODE = "n34"; // FIXME
-	private static final String GOAL_NODE = "n1"; // FIXME
+	private static final String GOAL_NODE = "n28"; // FIXME
 
 	public AttackGraph() {
 		this.nodes = new LinkedList<>();
@@ -170,7 +170,7 @@ public class AttackGraph implements DecisionInterface {
 		}
 		
 //		System.out.println(listSol);
-//		this.writeCSV(listSol);
+		this.writeCSV(listSol);
 		
 	}
 
