@@ -338,7 +338,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		fl.readFile("files/AttackGraph2.xml");
+		fl.readFile("files/AttackGraph_2vul.xml");
 		String goalNode = "n20";
 
 		bs.setFile(fl);
