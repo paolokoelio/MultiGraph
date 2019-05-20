@@ -1,4 +1,4 @@
-package es.um.multigraph.decision.almohri.Utils;
+package es.um.multigraph.utils;
 
 import java.io.BufferedReader;
 import java.io.File;

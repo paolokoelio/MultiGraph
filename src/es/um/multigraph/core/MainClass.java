@@ -260,6 +260,7 @@ public class MainClass implements Runnable {
     private final Thread guiThread;
     private Thread eventThread;
     private Thread decisionThread;
+    public static String[] args1;
     
     public boolean isDecisionThreadRunning() {
         return decisionThread!=null && decisionThread.isAlive();
@@ -268,6 +269,7 @@ public class MainClass implements Runnable {
     public static void main(String[] args) throws InterruptedException {
         MainClass mainClassInstance = new MainClass();
         mainClassInstance.startMainClass();
+        args1 = args;
     }
     
     public MainClass() {

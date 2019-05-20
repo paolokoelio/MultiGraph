@@ -9,7 +9,6 @@ import java.util.Set;
 
 import Graph.Graph;
 import Graph.GraphReader;
-import es.um.multigraph.decision.almohri.Utils.GoalReader;
 //import Graph.Graph;
 //import Graph.GraphReader;
 //import Graph.Optimizer;
@@ -19,6 +18,7 @@ import es.um.multigraph.decision.almohri.Utils.GoalReader;
 //import es.um.multigraph.decision.almohri.Graph.Optimizer;
 import Success.InitialSolution;
 import es.um.multigraph.decision.almohri.Success.Improvement;
+import es.um.multigraph.utils.GoalReader;
 
 /**
  *
