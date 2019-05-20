@@ -164,7 +164,7 @@ public class BayesianNode extends Node {
     }
 
     //========================================================================
-    // NAVIGATION AND GRAPH QUERYES
+    // NAVIGATION AND GRAPH QUERIES
     //========================================================================
     /**
      * If this state is compromised, and the input edges are in AND
