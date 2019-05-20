@@ -37,9 +37,9 @@ public class DBManager {
 
     private Connection connection;
     
-    public static final String DRIVER_MYSQL = "com.mysql.jdbc.Driver";
+//    public static final String DRIVER_MYSQL = "com.mysql.jdbc.Driver";
+    public static final String DRIVER_MYSQL =  "com.mysql.cj.jdbc.Driver";
     public static final String DRIVER_SQLLITE = "org.sqlite.JDBC";
-    
 
     /**
      * Use this costructor for SQLite database
@@ -78,9 +78,11 @@ public class DBManager {
 
     public void connect() throws SQLException {
         if(driver.contains("mysql"))
-            this.connection = DriverManager.getConnection("jdbc:mysql://" + hostname + ":" + port + "/" + database, user, password);
+            this.connection = DriverManager.getConnection("jdbc:mysql://" + hostname + ":" + port + "/" + database + "?useLegacyDatetimeCode=false&serverTimezone=UTC", user, password);
         else if(driver.contains("sqlite"))
-            this.connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+        	this.connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+//        	this.connection = DriverManager.getConnection("jdbc:sqlite::memory:");
+        	
         else
             throw new SQLException("Cannot parse JDBC Driver Name");
     }

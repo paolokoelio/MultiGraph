@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="es/um/multigraph/decision/almohri/Graph/Classes/|Graph/" kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/jbool_expressions-1.22-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="lib/jgraphx.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.8.11.1.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/jcommon-1.0.23.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/jfreechart-1.0.19-experimental.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/jfreechart-1.0.19-swt.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/jfreechart-1.0.19.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/jfreesvg-2.0.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/junit-4.11.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/orsoncharts-1.4-eval-nofx.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/orsonpdf-1.6-eval.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/servlet.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19/lib/swtgraphics2d.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/commons-cli-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/commons-codec-1.8.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/commons-lang3-3.1.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/commons-math3-3.4.1.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/jcommon-1.0.20.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/jfreechart-1.0.15.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/JMetal-4.3.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/MOEAFramework-2.12.jar"/>
+	<classpathentry kind="lib" path="lib/MOEAFramework-2.12/lib/rsyntaxtextarea.jar"/>
+	<classpathentry kind="lib" path="lib/jdesktop/appframework-1.0.3.jar"/>
+	<classpathentry kind="lib" path="lib/jdesktop/swing-layout-1.0.3.jar"/>
+	<classpathentry kind="lib" path="lib/jdesktop/swing-worker-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/CVSS/CVSS.jar"/>
+	<classpathentry kind="lib" path="lib/org-jdesktop-beansbinding.jar"/>
+	<classpathentry kind="lib" path="lib/beansbinding-1.2.1.jar"/>
+	<classpathentry kind="lib" path="lib/mysql-connector-java-8.0.15.jar"/>
+	<classpathentry kind="lib" path="lib/AttackAnalysis.jar"/>
+	<classpathentry kind="lib" path="lib/ext-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/jep-2.4.1.jar"/>
+	<classpathentry kind="lib" path="lib/guava-23.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

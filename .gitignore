@@ -1,3 +1,9 @@
 /bin/
 /lib/MOEAFramework-2.12
 !/lib/MOEAFramework-2.12/lib/
+/files/solutions/*
+/BayesianModelDatabase.db
+/stdout*
+/.project
+/files/ags/*
+/ramdisk/

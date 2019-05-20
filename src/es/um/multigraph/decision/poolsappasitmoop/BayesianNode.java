@@ -18,7 +18,7 @@ import java.awt.GridLayout;
 import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Iterator;
-
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -110,6 +110,10 @@ public class BayesianNode extends Node {
     public void setUnconditionalPr(Double pr) {
         this.unconditionalPr = pr;
     }
+    
+    public void updateUnconditionalPr(Double pr) {
+        this.unconditionalPr = getUnconditionalPr() * pr;
+    }
 
     public boolean hasUnconditionalPr() {
         return this.unconditionalPr != Double.NaN;
@@ -200,6 +204,29 @@ public class BayesianNode extends Node {
             BayesianNode tmp = (BayesianNode) it.next().getFrom();
             result.add(tmp);
             result.addAll(tmp.getAllAncestor());
+        }
+
+        return result;
+    }
+    
+    //TODO decide if to keep
+    public Set<BayesianNode> getAllDescendants() {
+        Set<BayesianNode> result = new LinkedHashSet<>();
+        for (Iterator<Edge> it = this.getOut().iterator(); it.hasNext();) {
+            BayesianNode tmp = (BayesianNode) it.next().getTo();
+            result.add(tmp);
+            result.addAll(tmp.getAllDescendants());
+        }
+
+        return result;
+    }
+    
+    public Set<BayesianNode> getAllParents() {
+        Set<BayesianNode> result = new HashSet<>();
+        for (Iterator<Edge> it = this.getIn().iterator(); it.hasNext();) {
+            BayesianNode tmp = (BayesianNode) it.next().getFrom();
+            result.add(tmp);
+            //result.addAll(tmp.getAllAncestor());
         }
 
         return result;

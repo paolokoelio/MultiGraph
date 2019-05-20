@@ -6,6 +6,7 @@ package es.um.multigraph.decision.almohri.Success;
 
 import Graph.Arc;
 import Graph.Vertex;
+//import es.um.multigraph.decision.almohri.Graph.*;
 import Utilities.FastIO;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,7 @@ public class Solver {
     {
         FileAccess fa = new FileAccess();
         List <String> cmd = new ArrayList<>();
-        cmd.add("/usr/bin/glpsol");
+        cmd.add("/usr/local/bin/glpsol");
         cmd.add("--interior");
         cmd.add("-m");
         cmd.add(path);

@@ -203,6 +203,7 @@ public class MainClass implements Runnable {
         addDecisionModuleToSwitcher(BayesianAttackGraph.class);
         addDecisionModuleToSwitcher(BayesianAttackGraphAdapted.class);
         addDecisionModuleToSwitcher(AttackGraph.class);
+        addDecisionModuleToSwitcher(AttackGraph.class);
         forceDecisionModule(1);
 //        this.activeDecisionModule.init(this);
     }

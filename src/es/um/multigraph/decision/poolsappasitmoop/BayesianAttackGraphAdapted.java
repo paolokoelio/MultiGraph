@@ -12,6 +12,7 @@ import es.um.multigraph.conf.DBManager;
 import es.um.multigraph.conf.FeaturesEnum;
 import es.um.multigraph.conf.RiskScale;
 import es.um.multigraph.core.MainClass;
+import es.um.multigraph.core.test.CompteUnc;
 import es.um.multigraph.decision.DecisionInterface;
 import es.um.multigraph.decision.DecisionInterfaceImpl;
 import es.um.multigraph.decision.basegraph.Edge;
@@ -31,6 +32,9 @@ import es.um.multigraph.utils.FileUtils;
 import es.um.multigraph.utils.ImportAG;
 import es.um.multigraph.utils.ParseAG;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -53,6 +57,11 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
@@ -62,10 +71,13 @@ import javax.swing.table.TableModel;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
+import org.junit.runner.Computer;
 import org.moeaframework.Executor;
 import org.moeaframework.analysis.plot.Plot;
 import org.moeaframework.core.NondominatedPopulation;
 import org.moeaframework.core.Variable;
+
+import com.sun.management.OperatingSystemMXBean;
 
 /**
  * <h1>Dynamic Security Risk Management Using Bayesian Attack Graph</h1>
@@ -109,11 +121,16 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	DBManager DB;
 	private boolean stop = false;
 	Map<String, Double> exlg;
+	private Connection connGlob;
 
 	public BayesianAttackGraphAdapted() {
 		super();
 
+//		DB = new DBManager("BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
+		// put it in RAM to speed up the computations (also an empty name '' is cached)
 		DB = new DBManager("BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
+//		DB = new DBManager("localhost" , "3306", "BMDB", "root", "toor",  DBManager.DRIVER_MYSQL);
+		
 		/*
 		 * try {
 		 * 
@@ -155,7 +172,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 		st.execute(DBManager.translateFromMySQLtoSQLite(queryCreateLCPD));
 		st.close();
-		conn.close();
+//		conn.close();
 		DB.disconnect();
 		log("Database correctly initialized (" + (dropEverything ? "Drop Enabled" : "Drop Disabled") + ")\n");
 	}
@@ -302,7 +319,23 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 //		initDefault();
 		
 		try {
+			
+			System.out.println("Available CPUs: " + Runtime.getRuntime().availableProcessors());
+			
+			long startTime = System.currentTimeMillis();
+		    OperatingSystemMXBean bean =  (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+		    long startTimeCPU =  bean.getProcessCpuTime();
+		
 			initAGsim();
+			
+		    long endTimeCPU =  bean.getProcessCpuTime();
+			long endTime = System.currentTimeMillis();
+			System.out.println("Total wall clock time in execution of "
+					+ "initAGsim() is :"+ (endTime-startTime)/1000d);
+			System.out.println("Total CPU time in execution of "
+					+ "initAGsim() is :"+ (endTimeCPU-startTimeCPU)/1000000000d);
+					  
+			
 		} catch (SQLException ex) {
 			Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 			JOptionPane.showMessageDialog(null,
@@ -338,8 +371,14 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		fl.readFile("files/AttackGraph_2vul.xml");
-		String goalNode = "n20";
+		String path = "files/ags/scenario/AttackGraph.xml";
+		fl.readFile(path);
+//		fl.readFile("files/scenario1.xml");
+		Set<String> goalNodes = new HashSet<String>();
+		goalNodes.add("n1");
+//		goalNodes.add("n54");
+//		goalNodes.add("n68");
+//		goalNodes.add("n25");
 
 		bs.setFile(fl);
 		
@@ -356,6 +395,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 		this.setupDB(true);
 		this.DB.connect();
+		this.connGlob = DB.getConnection();
 
 		for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet())
 			this.addNode(entry.getValue());
@@ -369,15 +409,27 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		
 		log("BAG parsed and converted\n");
 		
-		for (Iterator iterator = this.getEdges().iterator(); iterator.hasNext();) {
+		for (@SuppressWarnings("rawtypes")
+		Iterator iterator = this.getEdges().iterator(); iterator.hasNext();) {
 			BayesianEdgeAdapted edge = (BayesianEdgeAdapted) iterator.next();
 			log(edge.getID() + " " + edge.getPrActivable() + "\n");
 		}
 		
-		//setting big loss/gain for goal node
-		((BayesianNodeAdapted) this.getNodeByID(goalNode)).setExpectedLoss(100d);
-//		((BayesianNodeAdapted) this.getNodeByID(goalNode)).setExpectedGain(100d);
-
+		//keep only the nodes ancestors of the Goal Node
+		Set<BayesianNode> newBAG = new HashSet<BayesianNode>(); //uncomment to retrieve old BAG
+//		Set<BayesianNode> oldBAG = this.BAG; //uncomment to retrieve old BAG
+		for (@SuppressWarnings("rawtypes")
+		Iterator it = goalNodes.iterator(); it.hasNext();) {
+			String g = (String) it.next();
+			//setting big loss/gain for goal node TODO justify loss 100
+			BayesianNodeAdapted goal = (BayesianNodeAdapted) this.getNodeByID(g);
+			goal.setExpectedLoss(1000d);
+//			((BayesianNodeAdapted) this.getNodeByID(goalNode)).setExpectedGain(100d);	
+			newBAG.addAll(goal.getAllAncestor());
+			newBAG.add(goal);
+		}
+		
+		this.BAG = newBAG;
 		
 		/*
 		 * Generating LGs before applying CMs, we'll need that for later
@@ -385,7 +437,12 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		exlg = new LinkedHashMap<String, Double>();
 		Map<String, Double> exlgPrev = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
-		this.computeUnconditionalProbability(false); //TODO
+		this.computeUnconditionalProbability(false);
+//		BayesianNode g = (BayesianNode) this.getNodeByID(goalNode);
+//		computeUnconditionalProbability(g, true);
+//		this.exlg.put(g.getID(),g.getExpectedLossGain());
+//		for (BayesianNode n : this.BAG)
+//			this.exlg.put(n.getID(),n.getExpectedLossGain());
 		
 		exlgPrev = exlg;
 		exlg = new LinkedHashMap<String, Double>();
@@ -427,7 +484,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		/* Computing LGs after applying the CMs */
 		Map<String, Double> exlgAfter = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
-		this.computeUnconditionalProbability(true); //TODO long
+		this.computeUnconditionalProbability(true); // long 2^#_of_ancestors
+		
+//		computeUnconditionalProbabilityDescendants(myCMNodes, true);
+//		for (BayesianNode n : this.BAG)
+//			this.exlg.put(n.getID(),n.getExpectedLossGain());
 		
 		exlgAfter = exlg;
 		
@@ -456,6 +517,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		utMoop.setCmIds(bGen.getCmIds());
 		secPlans = utMoop.resolve(moop, "NSGAII", 1000);
 		
+		/* disable enabled CMs */
 		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
 			this.disableCM(iter.next());
 				
@@ -479,10 +541,10 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			j++;
 		}
 
-		/* Apply first secPlan */
-//		if(!secPlans.isEmpty())
-//			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
-//				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
+		/* Apply second secPlan */
+		if(!secPlans.isEmpty())
+			for(Iterator<String> iterator = secPlans.get(1).iterator(); iterator.hasNext();)
+				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
 		
 		Plot plot = new Plot();
 		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
@@ -1082,9 +1144,12 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	private boolean lcpdComputed = false;
 
 	/**
-	 * See section 4 in the paper: This function compute the LCPD for each state.
+	 * See section 4 in the paper: This function computes the LCPD for each state.
 	 */
 	public void computeLCPD() {
+		
+		int SQL = 0;
+		
 		// The LCPD table at this stage require only INSERT
 		// Each row does NOT depend on the others
 		for (BayesianNode n : this.BAG) {
@@ -1145,6 +1210,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 				try {
 					this.LCPD_SQL_addRow(parentID, parentStates, n.getID(), pr, 1 - pr);
+					SQL++;
 				} catch (SQLException ex) {
 					Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 				}
@@ -1152,6 +1218,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			}
 		}
 		this.log("All LCPD's tables computed\n");
+		this.log("SQL Writes:" + SQL + "\n");
 		this.lcpdComputed = true;
 	}
 
@@ -1247,6 +1314,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	 * Suppose a set of 4 nodes: {A,B,C,D}. Edges are: {D->C},{D->B},
 	 * {B->A},{C->A}.<br>
 	 * UncdProb(A,B,C,D) = Pr(A|Pa(A)) x Pr(B|Pa(B)) x Pr(C|Pa(C)) x Pr(D|Pa(D))
+	 * 
+	 * It has O(2^n) complexity (like for BBNs).
 	 *
 	 * @param forceRecompute
 	 * @return
@@ -1256,6 +1325,9 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	 */
 	public Double computeUnconditionalProbability(BayesianNode target, boolean forceRecompute) throws SQLException {
 
+		int SQL = 0;
+		int SKIP = 0;
+		
 		if (!target.getUnconditionalPr().equals(Double.NaN) && !forceRecompute) {
 			this.log("PrUnconditional(" + target.getID() + ") = " + target.getUnconditionalPr() + " CACHED\n");
 			return target.getUnconditionalPr();
@@ -1265,18 +1337,18 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 		if (target.isExternal()) {
 			debug += ")";
-			// this.log(debug+"\n");
-			// this.log("| Pr(" + target.getID() + "=true) = " + String.format("%.2f",
-			// target.getPriorPr()) + " PRIOR\n"); //COMMENT FOR INLINE
-			// this.log("| SUM += 0,0 -> " + String.format("%.2f",
-			// target.getPriorPr())+"\n"); //COMMENT FOR INLINE
-			// this.log("|-------------------------\nResult\n"); //COMMENT FOR INLINE
+//			 this.log(debug+"\n");
+//			 this.log("| Pr(" + target.getID() + "=true) = " + String.format("%.2f",
+//			 target.getPriorPr()) + " PRIOR\n"); //COMMENT FOR INLINE
+//			 this.log("| SUM += 0,0 -> " + String.format("%.2f",
+//			 target.getPriorPr())+"\n"); //COMMENT FOR INLINE
+//			 this.log("|-------------------------\nResult\n"); //COMMENT FOR INLINE
 			this.log(debug + " = " + String.format("%.2f", target.getPriorPr()) + "\n");
 			target.setUnconditionalPr(target.getPriorPr());
 			return target.getPriorPr();
 		}
 
-		// debug += "|"; //COMMENT FOR INLINE
+//		 debug += "|"; //COMMENT FOR INLINE
 		Set<BayesianNode> ancestor = target.getAllAncestor();
 		List<String> ancestorID = new LinkedList<>();
 		List<Boolean> ancestorStates = new LinkedList<>();
@@ -1284,22 +1356,31 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		for (Iterator<BayesianNode> it = ancestor.iterator(); it.hasNext();) {
 			String tmp = it.next().getID();
 			ancestorID.add(tmp);
-			// debug += tmp + " "; //COMMENT FOR INLINE
+//			 debug += tmp + " "; //COMMENT FOR INLINE
 		}
-		// debug = debug.trim(); //COMMENT FOR INLINE
-		debug += ")"
-				// + "\n" //COMMENT FOR INLINE
-				+ "";
-		// this.log(debug+"\n");
+//		 debug = debug.trim(); //COMMENT FOR INLINE
+//		debug += ")"
+//				 + "\n" //COMMENT FOR INLINE
+//				+ "";
+//		 this.log(debug+"\n");
 
 		Double sum_result = 0d;
+
+		int anc_size = (int) ancestorID.size();
+		long startTime = 0;
+		
+		if(anc_size >5) {
+//		 System.out.println("PrUnc: Pa[" + target.getID() + "] size: " + ancestorID.size() + ", #cases " + Math.pow(2, ancestorID.size()));
+		 this.log("PrUnc: Pa[" + target.getID() + "] size: " + ancestorID.size() + ", #cases " + Math.pow(2, ancestorID.size()));
+		 startTime = System.currentTimeMillis();
+		}
 
 		// Generate all possible combinations of parents states
 		for (int i = 0; i < Math.pow(2, ancestorID.size()); i++) {
 			ancestorStates.clear();
 
 			// this.log("|-------------------------\n");
-			// debug = "| Pr(" + target.getID() + "|"; //COMMENT FOR INLINE
+//			 debug = "| Pr(" + target.getID() + "|"; //COMMENT FOR INLINE
 			StringBuilder binary = new StringBuilder(Integer.toBinaryString(i));
 			for (int j = binary.length(); j < ancestorID.size(); j++) {
 				binary.insert(0, '0');
@@ -1307,12 +1388,12 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 			for (int pos = 0; pos < ancestorID.size(); pos++) {
 				ancestorStates.add(binary.charAt(pos) == '1');
-				// debug += ancestorID.get(pos) + "=" + ancestorStates.get(pos) + " "; //COMMENT
+//				 debug += ancestorID.get(pos) + "=" + ancestorStates.get(pos) + " "; //COMMENT
 				// FOR INLINE
 			}
 
-			// debug = debug.trim() + ")"; //COMMENT FOR INLINE
-			// this.log(debug+"\n"); //COMMENT FOR INLINE
+//			 debug = debug.trim() + ")"; //COMMENT FOR INLINE
+//			 this.log(debug+"\n"); //COMMENT FOR INLINE
 			Double partialPR = 1d;
 
 			// TARGET NODE
@@ -1323,23 +1404,25 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				parentStates[kk] = ancestorStates.get(ancestorID.indexOf(parentIDs.get(kk)));
 			}
 
+			//Maybe, instead of doing a read per for-cycle, collect them in a batch and then "commit" them all together.
 			Double tmp_pr = LCPD_SQL_searchRecord(target.getID(), parentIDs.toArray(new String[parentIDs.size()]),
 					parentStates, true);
+			SQL++;
 			partialPR *= tmp_pr;
 
 			// END TARGET NODE
 			if (partialPR == 0) {
-				// this.log(debug + " == 0 -> SKIP"); //COMMENT FOR INLINE
-				// this.log("| SUM += 0,0 -> " + String.format("%.2f", sum_result)); //COMMENT
+//				 this.log(debug + " == 0 -> SKIP"); //COMMENT FOR INLINE
+//				 this.log("| SUM += 0,0 -> " + String.format("%.2f", sum_result)); //COMMENT
 				// FOR INLINE
 				continue;
 			} else {
-				// this.log(debug + " = " + String.format("%.2f", tmp_pr)); //COMMENT FOR INLINE
+//				 this.log(debug + " = " + String.format("%.2f", tmp_pr)); //COMMENT FOR INLINE
 			}
-
+			
 			// ALL ANCESTORS
 			for (Iterator<BayesianNode> itt = target.getAllAncestor().iterator(); itt.hasNext();) {
-				// debug = "|"; //COMMENT FOR INLINE
+//				 debug = "|"; //COMMENT FOR INLINE
 				BayesianNode p = itt.next();
 
 				boolean pState = ancestorStates.get(ancestorID.indexOf(p.getID()));
@@ -1347,52 +1430,63 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				if (p.isExternal()) {
 					tmp_pr = pState ? p.getPriorPr() : (1 - p.getPriorPr());
 					partialPR *= tmp_pr;
-					// debug += " Pr(" + p.getID() + "=" + pState + ") = " + String.format("%.2f",
-					// tmp_pr) + " PRIOR"; //COMMENT FOR INLINE
-					// this.log(debug); //COMMENT FOR INLINE
+//					 debug += " Pr(" + p.getID() + "=" + pState + ") = " + String.format("%.2f",
+//					 tmp_pr) + " PRIOR"; //COMMENT FOR INLINE
+//					 this.log(debug); //COMMENT FOR INLINE
 					continue;
 				}
 
-				// debug += " Pr(" + p.getID() + "=" + pState + "|"; //COMMENT FOR INLINE
+//				 debug += " Pr(" + p.getID() + "=" + pState + "|"; //COMMENT FOR INLINE
 				parentIDs = new LinkedList<>(p.getParentsIDs());
 				parentStates = new boolean[parentIDs.size()];
 
 				for (int kk = 0; kk < parentIDs.size(); kk++) {
 					parentStates[kk] = ancestorStates.get(ancestorID.indexOf(parentIDs.get(kk)));
-					// debug += parentIDs.get(kk) + "=" + parentStates[kk] + " "; //COMMENT FOR
+//					 debug += parentIDs.get(kk) + "=" + parentStates[kk] + " "; //COMMENT FOR
 					// INLINE
 				}
 
 				tmp_pr = LCPD_SQL_searchRecord(p.getID(), parentIDs.toArray(new String[parentIDs.size()]), parentStates,
 						pState);
+				SQL++;
 				partialPR *= tmp_pr;
 
 				if (partialPR == 0) {
-					// this.log(debug + ") == 0 -> SKIP"); //COMMENT FOR INLINE
+//					 this.log(debug + ") == 0 -> SKIP"); //COMMENT FOR INLINE
 					partialPR = 0d;
+					SKIP++;
 					break;
 				} else {
-					// log(debug + ") = " + String.format("%.2f", tmp_pr)); //COMMENT FOR INLINE
+//					 log(debug + ") = " + String.format("%.2f", tmp_pr)); //COMMENT FOR INLINE
 				}
 			}
 			// END ALL ANCESTORS
-
+			
 			sum_result += partialPR;
-			// this.log("| SUM += " + String.format("%.2f", partialPR) + " -> " +
-			// String.format("%.2f", sum_result)); //COMMENT FOR INLINE
+//			 this.log("| SUM += " + String.format("%.2f", partialPR) + " -> " +
+//			 String.format("%.2f", sum_result)); //COMMENT FOR INLINE
+		}
+		
+		if(anc_size >5) {
+			long endTime = System.currentTimeMillis();
+			long t = (endTime-startTime);
+			this.log("Total elapsed time in computation of "
+					+ "PrUnc is :" + t + "ms");
 		}
 
 		target.setUnconditionalPr(sum_result);
 
-		// this.log("|-------------------------"); // COMMENT FOR INLINE
+//		this.log("|-------------------------"); // COMMENT FOR INLINE
 		this.log(debug + ""
-		// "Result" //COMMENT FOR INLINE
-				+ " = " + String.format("%.2f", sum_result) + "\n");
-
+//		 + "Result" //COMMENT FOR INLINE
+//				+ ") = " + String.format("%.2f", sum_result) + "\n");
+				+ ") = " + String.format("%.2f", sum_result) );
+		this.log("SQL reads: " + SQL + " SKIPs: " + SKIP +"\n"); 
 		return sum_result;
 	}
 
 	public void computeUnconditionalProbability(boolean forceRecompute) throws SQLException {
+				
 		for (BayesianNode n : BAG) {
 			computeUnconditionalProbability(n, forceRecompute);
 		}
