@@ -6,4 +6,8 @@
 /stdout*
 /.project
 /files/ags/*
+/files/almohri/
 /ramdisk/
+/lib.bak/
+/files/
+

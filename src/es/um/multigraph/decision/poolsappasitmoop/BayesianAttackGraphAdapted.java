@@ -124,6 +124,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	Map<String, Double> exlg;
 	private Connection connGlob;
 	public String path;
+	private static final String PAPER_PREFIX = "Pool_SecPlan_";
+	private static final String DEF_FILENAME = "AttackGraph.xml";
 
 	public BayesianAttackGraphAdapted() {
 		super();
@@ -368,8 +370,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	 */
 	private void initAGsim() throws SQLException, ParserConfigurationException {
 		
-		final String PAPER_PREFIX = "Pool_SecPlan_";
-		
 		ImportAG bs;
 		this.BAG = new HashSet<>();
 
@@ -377,8 +377,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 		FileUtils fl = new FileUtils();
 		 
-		String filename = "AttackGraph.xml";
-		fl.readFile(this.path+filename);
+		fl.readFile(this.path+DEF_FILENAME);
 		
 		GoalReader goalReader = new GoalReader();
 		
@@ -525,8 +524,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		secPlans = utMoop.resolve(moop, "NSGAII", 1000);
 		
 		/* disable enabled CMs */
-		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
-			this.disableCM(iter.next());
+//		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
+//			this.disableCM(iter.next());
 				
 		/* Write and log CSVs with plans */
 		int j = 1;
@@ -549,12 +548,12 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		}
 
 		/* Apply first secPlan */
-		if(!secPlans.isEmpty())
-			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
-				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
-		
-		Plot plot = new Plot();
-		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
+//		if(!secPlans.isEmpty())
+//			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
+//				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
+//		
+//		Plot plot = new Plot();
+//		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
 		
 	}
 	
@@ -908,7 +907,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	
 	public static void main(String[] args) {
 		BayesianAttackGraphAdapted b = new BayesianAttackGraphAdapted();
-		b.path = args[0];
+		try {
+			b.path = args[0];
+		}catch (Exception e) {
+			b.path = null;
+		}
 		b.init(null);
 	}
 
@@ -1412,7 +1415,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				parentStates[kk] = ancestorStates.get(ancestorID.indexOf(parentIDs.get(kk)));
 			}
 
-			//Maybe, instead of doing a read per for-cycle, collect them in a batch and then "commit" them all together.
+			//Maybe, instead of doing a read per for-cycle, collect them in a batch and then "commit" them all together. PB
 			Double tmp_pr = LCPD_SQL_searchRecord(target.getID(), parentIDs.toArray(new String[parentIDs.size()]),
 					parentStates, true);
 			SQL++;

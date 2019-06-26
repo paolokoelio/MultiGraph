@@ -49,27 +49,27 @@ import es.um.multigraph.event.EventStream;
 import es.um.multigraph.event.solution.Solution;
 import es.um.multigraph.event.solution.dummy.DummySolution;
 import es.um.multigraph.utils.FileUtils;
+import es.um.multigraph.utils.GoalReader;
 import es.um.multigraph.utils.ImportAG;
 import es.um.multigraph.utils.ParseAG;
 
 /**
  *
- * @author Pavlo Burda - p.burda@tue.nl
  * @author Mattia Zago <a href="mailto:dev@zagomattia.it">dev@zagomattia.it</a>
+ * @author Pavlo Burda <a href="mailto:p.burda@tue.nl">p.burda@tue.nl</a>
  *
  */
 public class AttackGraph implements DecisionInterface {
 
 	MainClass parent;
 	private boolean stop = false;
+	private String path;
 	private static final String NEW_LINE_SEPARATOR = "\n";
 	private static final String FILE_HEADER = "cost,nodeIds";
 	private static final String PAPER_PREFIX = "Wang_NetHard";
-//	private static final String INPUT_AG_PATH = "files/AttackGraph2.xml";
-	private static final String INPUT_AG_PATH = "files/AttackGraph_2vul.xml";
+	private static final String DEFAULT_PATH = "files/ags/scenario/";
+	private static final String DEF_FILENAME = "AttackGraph.xml";
 	private static final String SOL_BASE_PATH = "files/solutions/";
-//	private static final String GOAL_NODE = "n34"; // FIXME
-	private static final String GOAL_NODE = "n1"; // FIXME
 
 	public AttackGraph() {
 		this.nodes = new LinkedList<>();
@@ -81,12 +81,14 @@ public class AttackGraph implements DecisionInterface {
 		if (main != null)
 			main.getGraph().cleanGraph();
 
-//		defaultInit();
+		if(this.path==null) {
+			System.out.println("No attack graph source files given, using default path files/ags/scenario/.");
+			this.path = DEFAULT_PATH;
+		}
 
 		try {
 			initAGsim();
 		} catch (ParserConfigurationException e) {
-			// AG generation from file
 			e.printStackTrace();
 		}
 
@@ -107,7 +109,8 @@ public class AttackGraph implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		fl.readFile(INPUT_AG_PATH);
+		
+		fl.readFile(path+DEF_FILENAME);
 
 		bs.setFile(fl);
 
@@ -128,12 +131,21 @@ public class AttackGraph implements DecisionInterface {
 		for (Entry<String, MyEdge> entry : myEdges.entrySet())
 			this.addEdge(entry.getValue());
 
+		GoalReader goalReader = new GoalReader();
+		
+		Set<String> goalNodes = new HashSet<String>();
+		goalNodes = goalReader.readGoals(path);
+		
 		List<MyNode> goals = new ArrayList<MyNode>();
-		goals.add(this.getNodeByID(GOAL_NODE));
+		for(@SuppressWarnings("rawtypes")
+		Iterator it = goalNodes.iterator(); it.hasNext();) {
+			String g = (String) it.next();
+			goals.add(this.getNodeByID("n"+g));
+		}
 
 		NetworkHardening nh = new NetworkHardening(this, goals);
 		nh.harden();
-//		nh.hardenApprox(1); //TODO check if needed approx. alg. (ForwardSearch)
+//		nh.hardenApprox(1); // check if needed approx. alg. (ForwardSearch)
 //		List<Object> L = nh.getL();
 		Expression<String> L = nh.getLexpr();
 		log("Result - L:\n");
@@ -217,6 +229,11 @@ public class AttackGraph implements DecisionInterface {
 
 	public static void main(String[] args) {
 		AttackGraph a = new AttackGraph();
+		try {
+			a.path = args[0];
+		}catch (Exception e) {
+			a.path = null;
+		}
 		a.init(null);
 	}
 

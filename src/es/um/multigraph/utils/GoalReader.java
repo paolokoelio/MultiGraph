@@ -20,7 +20,7 @@ public class GoalReader {
 	public Set<String> readGoals(String path) {
 		Set<String> goals = new HashSet<String>();
 		FileAccess fa = new FileAccess();
-		String file = path + "goal.txt";
+		String file = path + "goals.txt";
 		File tempFile = new File(file);
 		if(!tempFile.exists())
 			return this.readGoalsFromAG(path);

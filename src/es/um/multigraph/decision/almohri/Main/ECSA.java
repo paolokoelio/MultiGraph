@@ -21,6 +21,7 @@ import es.um.multigraph.core.MainClass;
 import es.um.multigraph.decision.DecisionInterface;
 import es.um.multigraph.decision.almohri.Success.Improvement;
 import es.um.multigraph.event.Event;
+import es.um.multigraph.event.EventStream;
 import es.um.multigraph.event.solution.Solution;
 import es.um.multigraph.utils.GoalReader;
 import es.um.multigraph.decision.basegraph.Edge;
@@ -30,21 +31,40 @@ import es.um.multigraph.decision.lwang.AttackGraph;
 
 public class ECSA implements DecisionInterface {
 
+	MainClass parent;
+	private boolean stop = false;
+
 	@Override
 	public void log(String txt) {
-		// TODO Auto-generated method stub
-
+		if (this.parent != null)
+			this.parent.log(txt, this);
+		else
+			System.out.println(txt);
 	}
 
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
+		this.stop = false;
+		parent.log("Started.\n", this);
+		// System.out.println(parent.toString());
+		if (parent != null)
+			parent.showGraph();
+		try {
+			while (!this.isStopped()) {
+				Thread.sleep(1000);	// I don't like this kind of solution...
+				// parent.log(toString()+" still active\n");
+				// parent.updateNumberOfNodes(0);
+			}
+		} catch (InterruptedException ex) {
+			Logger.getLogger(EventStream.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		this.log("Stopped.\n");
 
 	}
 
 	@Override
 	public void init(MainClass main) {
-
+		this.parent = main;
 		GraphReader reader = new GraphReader();
 		Graph g;
 		GoalReader goalReader = new GoalReader();
@@ -111,7 +131,7 @@ public class ECSA implements DecisionInterface {
 
 	@Override
 	public String getPaperAuthors() {
-		throw new UnsupportedOperationException("Not supported yet.");
+		return "Almohri, " + "Watson," + " Yao, " + "Ou";
 	}
 
 	@Override
@@ -126,8 +146,12 @@ public class ECSA implements DecisionInterface {
 
 	@Override
 	public void stop() {
-		// TODO Auto-generated method stub
+		this.log("Stop requested.\n");
+		this.stop = true;
+	}
 
+	public boolean isStopped() {
+		return stop;
 	}
 
 	@Override
