@@ -10,4 +10,5 @@
 /ramdisk/
 /lib.bak/
 /files/
-
+!/lib/hsqldb/lib/
+/lib/hsqldb/

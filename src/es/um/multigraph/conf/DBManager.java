@@ -23,8 +23,10 @@ public class DBManager {
     public static String translateFromMySQLtoSQLite(String query) {
         return query
                 .replaceAll("INT", "INTEGER")
-                .replaceAll("AUTO_INCREMENT", "")
+//                .replaceAll("AUTO_INCREMENT", "")
+                .replaceAll("AUTO_INCREMENT", "IDENTITY")
                 .replaceAll("UNIQUE INDEX ID_UNIQUE", "PRIMARY KEY")
+                .replaceAll("ASC", "")
         ;
     }
 
@@ -40,6 +42,7 @@ public class DBManager {
 //    public static final String DRIVER_MYSQL = "com.mysql.jdbc.Driver";
     public static final String DRIVER_MYSQL =  "com.mysql.cj.jdbc.Driver";
     public static final String DRIVER_SQLLITE = "org.sqlite.JDBC";
+    public static final String DRIVER_HSQLDB = "org.hsqldb.jdbcDriver";
 
     /**
      * Use this costructor for SQLite database
@@ -82,6 +85,9 @@ public class DBManager {
         else if(driver.contains("sqlite"))
         	this.connection = DriverManager.getConnection("jdbc:sqlite:" + database);
 //        	this.connection = DriverManager.getConnection("jdbc:sqlite::memory:");
+        else if(driver.contains("hsqldb"))
+//        	this.connection = DriverManager.getConnection("jdbc:hsqldb:file:" + database, "", "");
+        	this.connection = DriverManager.getConnection("jdbc:hsqldb:mem:.", "", "");
         	
         else
             throw new SQLException("Cannot parse JDBC Driver Name");

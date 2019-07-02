@@ -33,6 +33,7 @@ import es.um.multigraph.utils.GoalReader;
 import es.um.multigraph.utils.ImportAG;
 import es.um.multigraph.utils.ParseAG;
 
+import java.io.Reader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.math.BigDecimal;
@@ -44,6 +45,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -132,8 +134,10 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 //		DB = new DBManager("BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
 		// put it in RAM to speed up the computations
-		DB = new DBManager("ramdisk/BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
+//		DB = new DBManager("ramdisk/BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
 //		DB = new DBManager("localhost" , "3306", "BMDB", "root", "toor",  DBManager.DRIVER_MYSQL);
+		DB = new DBManager("lib/hsqldb/data/testdb/test", DBManager.DRIVER_HSQLDB);
+
 		
 		/*
 		 * try {
@@ -162,19 +166,33 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 		String queryCreateLCPD = "" + "CREATE TABLE lcpd (" + "ID INT NOT NULL AUTO_INCREMENT, "
 				+ "prTrue FLOAT NOT NULL," + "prFalse FLOAT NOT NULL," + "UNIQUE INDEX ID_UNIQUE (ID ASC)" + ");";
+		
+		// for hsqldb
+//		queryCreateLCPD = "" + "CREATE TABLE lcpd (" + "ID INT NOT NULL AUTO_INCREMENT, "
+//				+ "prTrue FLOAT NOT NULL," + "prFalse FLOAT NOT NULL," + "UNIQUE INDEX ID_UNIQUE (ID)" + ");";
+		
 		Statement st = conn.createStatement();
 
 		if (dropEverything) { // Does not cause any problem in MYSQL
 			try {
 				st.execute(drop);
-			} catch (SQLException ex) {
-				if (!ex.getMessage().contains("no such table")) // Throw exception in SQLite if the table does not
-																// exists
+			} catch (SQLException ex ) {
+				if (ex.getMessage().contains("no such table")) // Throw exception in SQLite if the table does not
+					;											// exists
+				else if(ex.getMessage().contains("object not found")) {
+					;
+				} else {
 					throw ex;
+				}
+					
+				
 			}
 		}
+		
 
 		st.execute(DBManager.translateFromMySQLtoSQLite(queryCreateLCPD));
+//		st.execute(queryCreateLCPD);
+
 		st.close();
 //		conn.close();
 		DB.disconnect();
@@ -216,14 +234,17 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			// search for duplicates
 			String checkQuery = "SELECT prTrue as T, prFalse as F FROM lcpd WHERE " + me + "='M'";
 			for (int i = 0; i < nodesID.length; i++) {
-				checkQuery += " AND " + nodesID[i] + "=" + (nodesState[i] ? "1" : "0");
+				checkQuery += " AND " + nodesID[i] + "=" + (nodesState[i] ? "'1'" : "'0'");
 			}
 
+//			System.out.print("add_Row: " + checkQuery + "\n");
+			
 			ResultSet rs = conn.createStatement().executeQuery(checkQuery);
-			if (rs.next()) // throw new SQLException("Duplicate state array", "DUP", 1062);
-			{
-				return; // better if we throw an exception?
-			}
+//			System.out.print("" + rs.next() + "\n");
+			
+			if(rs.next()==true)
+				//then there is a duplicate}
+
 			if (nodesID.length != nodesState.length) {
 				throw new AssertionError("ID and states have different size");
 			}
@@ -247,6 +268,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 					ps.setString(4 + i, nodesState[i] ? "1" : "0");
 				}
 
+//				System.out.println(ps.toString());
+				
 				ps.executeUpdate();
 			}
 		}
@@ -270,7 +293,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 			String updQuery = "UPDATE lcpd SET prTrue='" + prTrue + "', prFalse='" + prFalse + "' WHERE " + me + "='M'";
 			for (int i = 0; i < nodesID.length; i++) {
-				updQuery += " AND " + nodesID[i] + "=" + (nodesState[i] ? "1" : "0");
+				updQuery += " AND " + nodesID[i] + "=" + (nodesState[i] ? "'1'" : "'0'");
 			}
 
 			try (PreparedStatement ps = conn.prepareStatement(updQuery)) {
@@ -292,7 +315,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		}
 
 		query += " LIMIT 1";
-
+		
 		// this.update("Looking for " + me + " (" + (prTrue ? "prTrue" : "prFalse") + ")
 		// in LCPD table: " + query + " -- " + Arrays.toString(nodesState));
 		PreparedStatement ps = conn.prepareStatement(query);
@@ -300,9 +323,13 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		for (int i = 0; i < nodesState.length; i++) {
 			ps.setString(i + 1, nodesState[i] ? "1" : "0");
 		}
-
+		
+//		System.out.println("Query: " + query);
+		
 		ResultSet rs = ps.executeQuery();
 		rs.next();
+		
+//		result = Double.parseDouble(rs.getString(1));
 		result = rs.getDouble(1); // RESULT COLUMN ARE COUNTED FROM 1
 
 		return result;
@@ -425,8 +452,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		for (@SuppressWarnings("rawtypes")
 		Iterator it = goalNodes.iterator(); it.hasNext();) {
 			String g = (String) it.next();
-			g = "n" + g; //necessary t obe consistent with BayesianAdapter class
-			//setting big loss/gain for goal node TODO justify loss 100
+			g = "n" + g; //necessary to be consistent with BayesianAdapter class
+			//setting big loss/gain for goal node TODO justify loss 1000
 			BayesianNodeAdapted goal = (BayesianNodeAdapted) this.getNodeByID(g);
 //			goal.setExpectedLoss(1000d);
 			goal.setExpectedGain(1000d);
@@ -552,8 +579,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 //			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
 //				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
 //		
-//		Plot plot = new Plot();
-//		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
+		Plot plot = new Plot();
+		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
 		
 	}
 	
@@ -1415,7 +1442,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				parentStates[kk] = ancestorStates.get(ancestorID.indexOf(parentIDs.get(kk)));
 			}
 
-			//Maybe, instead of doing a read per for-cycle, collect them in a batch and then "commit" them all together. PB
 			Double tmp_pr = LCPD_SQL_searchRecord(target.getID(), parentIDs.toArray(new String[parentIDs.size()]),
 					parentStates, true);
 			SQL++;
