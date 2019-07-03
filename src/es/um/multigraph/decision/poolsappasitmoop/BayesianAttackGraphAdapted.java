@@ -124,21 +124,23 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	DBManager DB;
 	private boolean stop = false;
 	Map<String, Double> exlg;
-	private Connection connGlob;
 	public String path;
-	private static final String PAPER_PREFIX = "Pool_SecPlan_";
+	private Double goalLoss = 1d;
+	private Double goalGain = 1d;
+	private String moopAlg = "NSGAII";
+	private int numOfEvals = 1000;
+	private String plotOpt = "";
+	private static final String PAPER_PREFIX = "Pool_";
 	private static final String DEF_FILENAME = "AttackGraph.xml";
 
 	public BayesianAttackGraphAdapted() {
 		super();
 
 //		DB = new DBManager("BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
-		// put it in RAM to speed up the computations
 //		DB = new DBManager("ramdisk/BayesianModelDatabase.db", DBManager.DRIVER_SQLLITE);
 //		DB = new DBManager("localhost" , "3306", "BMDB", "root", "toor",  DBManager.DRIVER_MYSQL);
 		DB = new DBManager("lib/hsqldb/data/testdb/test", DBManager.DRIVER_HSQLDB);
 
-		
 		/*
 		 * try {
 		 * 
@@ -403,16 +405,13 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		bs = new ImportAG();
 
 		FileUtils fl = new FileUtils();
-		 
 		fl.readFile(this.path+DEF_FILENAME);
 		
 		GoalReader goalReader = new GoalReader();
-		
 		Set<String> goalNodes = new HashSet<String>();
 		goalNodes = goalReader.readGoals(path);
 
 		bs.setFile(fl);
-		
 		bs.importAG();
 		ParseAG ps = new ParseAG(bs.getNodes(), bs.getEdges());
 		ps.parseAG();
@@ -426,37 +425,33 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 		this.setupDB(true);
 		this.DB.connect();
-		this.connGlob = DB.getConnection();
 
 		for (Map.Entry<Integer, BayesianNodeAdapted> entry : myNodes.entrySet())
 			this.addNode(entry.getValue());
 
-		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet()) {
+		for (Entry<String, BayesianEdgeAdapted> entry : myEdges.entrySet())
 			this.addEdge(entry.getValue());
-			log(entry.getValue().getID() + " " + entry.getValue().getPrActivable() + "\n");
-		}
 		
 		this.updateMetrics(myNodes);
 		
-		log("BAG parsed and converted\n");
+		log("\nBAG parsed and converted\n");
 		
 		for (@SuppressWarnings("rawtypes")
 		Iterator iterator = this.getEdges().iterator(); iterator.hasNext();) {
 			BayesianEdgeAdapted edge = (BayesianEdgeAdapted) iterator.next();
-			log(edge.getID() + " " + edge.getPrActivable() + "\n");
 		}
 		
-		//keep only the nodes ancestors of the Goal Node
+		//	keep only the nodes ancestors of the Goal Node
 		Set<BayesianNode> newBAG = new HashSet<BayesianNode>(); //uncomment to retrieve old BAG
 //		Set<BayesianNode> oldBAG = this.BAG; //uncomment to retrieve old BAG
 		for (@SuppressWarnings("rawtypes")
 		Iterator it = goalNodes.iterator(); it.hasNext();) {
 			String g = (String) it.next();
 			g = "n" + g; //necessary to be consistent with BayesianAdapter class
-			//setting big loss/gain for goal node TODO justify loss 1000
+			//setting big loss/gain for goal node from parameters
 			BayesianNodeAdapted goal = (BayesianNodeAdapted) this.getNodeByID(g);
-//			goal.setExpectedLoss(1000d);
-			goal.setExpectedGain(1000d);
+			goal.setExpectedLoss(goalLoss);
+			goal.setExpectedGain(goalGain);
 //			((BayesianNodeAdapted) this.getNodeByID(goalNode)).setExpectedGain(1000d);	
 			newBAG.addAll(goal.getAllAncestor());
 			newBAG.add(goal);
@@ -483,6 +478,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		/*
 		 * Automatically generating CMs for compatible nodes as defined in (by me)
 		 */
+		
+		log("\nAutomatically generating possible Counter Measures for compatible nodes\n");
 		BayesianCMGenerator bGen = new BayesianCMGenerator(this.getNodes());
 		bGen.generateCMs();
 		
@@ -517,7 +514,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		/* Computing LGs after applying the CMs */
 		Map<String, Double> exlgAfter = new LinkedHashMap<String, Double>();
 		this.computeLCPD();
-		this.computeUnconditionalProbability(true); // long 2^#_of_ancestors
+		this.computeUnconditionalProbability(true); // 2^#_of_ancestors of goal node
 		
 //		computeUnconditionalProbabilityDescendants(myCMNodes, true);
 //		for (BayesianNode n : this.BAG)
@@ -528,7 +525,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 //		for (BayesianNode n : this.BAG) 
 //			exlgAfter.put(n.getID(),n.getExpectedLossGain());
 		
-		log("Starting MOOP procedures\n");
+		log("\nStarting MOOP procedures\n");
 		
 		MOOPUtils utMoop = new MOOPUtils();
 		utMoop.setLGs(exlgPrev);
@@ -543,17 +540,22 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		
 		moop.setLg(utMoop.getLgs()); moop.setScc(bGen.getCmSSCs());
 		moop.setNvulns(this.getCMNodes().size()); moop.setNcms(this.getCMNodes().size());
-		log(moop.getPropsRepresentation());
+		log("\n" + moop.getPropsRepresentation() + "\n");
+		log("alg: " + moopAlg + " n_of_evals: " + numOfEvals + "\n");
 		
 		List<List<String>> secPlans = new ArrayList<List<String>>();
 		
 		utMoop.setCmIds(bGen.getCmIds());
-		secPlans = utMoop.resolve(moop, "NSGAII", 1000);
+		log("\nRaw solutions: \n");
+		secPlans = utMoop.resolve(moop, moopAlg, numOfEvals);
+
 		
 		/* disable enabled CMs */
 //		for (Iterator<BayesianCMNode<Solution>> iter =  myCMNodes.iterator(); iter.hasNext(); )
 //			this.disableCM(iter.next());
 				
+		log("\nSecurity plans (written to files): \n");
+		
 		/* Write and log CSVs with plans */
 		int j = 1;
 		List<String> rowsCSV = new ArrayList<String>();
@@ -564,11 +566,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				for (Iterator<String> iterator2 = plan.iterator(); iterator2.hasNext();) {
 					cmNode = (BayesianCMNode<Solution>)  this.getNodeByID(iterator2.next());
 					row = cmNode.getID() + "," + cmNode.getOut().iterator().next().getTo().getID() + "," + cmNode.getCountermeasure() + "\n";
-					log(row);	rowsCSV.add(row);
+//					log(row);
+					rowsCSV.add(row);
 				}
-			
-			//FIXME static file name
-//			System.out.println("Plan" + j + ": " + rowsCSV);
+				
+			log("Plan" + j + ": " + rowsCSV + "\n");
 			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
 			rowsCSV = new ArrayList<String>();
 			j++;
@@ -578,10 +580,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 //		if(!secPlans.isEmpty())
 //			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)
 //				this.enableCM((BayesianCMNode<Solution>) this.getNodeByID(iterator.next()));
-//		
-		Plot plot = new Plot();
-		plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
-		
+				
+		if(plotOpt.equals("plot")) {
+			Plot plot = new Plot();
+			plot.add("NSGAII", utMoop.getResult()).setXLabel("Security control cost (SCC)").setYLabel("-Expected loss/gain (LG)").show();
+		}
 	}
 	
 	/**
@@ -698,8 +701,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		    }
 		}
 	}	
-	
-	
 	
 	/**
 	 * Start Counter Measure example conf.
@@ -935,7 +936,12 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	public static void main(String[] args) {
 		BayesianAttackGraphAdapted b = new BayesianAttackGraphAdapted();
 		try {
-			b.path = args[0];
+			b.goalGain = Double.parseDouble(args[0]); // set gain from param, default 1 
+			b.goalLoss = Double.parseDouble(args[1]); // set loss from param, default 1
+			b.moopAlg = args[2]; // set algorithm for the moop solver, def "NSGAII"
+			b.numOfEvals= Integer.parseInt(args[3]); // iteration for the NSAII
+			b.plotOpt= args[4]; // show or hide plot with solutions
+			b.path = args[5];
 		}catch (Exception e) {
 			b.path = null;
 		}
@@ -995,7 +1001,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		if (this.parent != null) {
 			this.parent.log(txt, this);
 		} else {
-			System.out.println(txt);
+			System.out.print(txt);
 		}
 	}
 
@@ -1186,7 +1192,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	 */
 	public void computeLCPD() {
 		
-		int SQL = 0;
+		int SQL = 0; // counter to keep track of SQL write ops
 		
 		// The LCPD table at this stage require only INSERT
 		// Each row does NOT depend on the others
@@ -1197,6 +1203,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 				pr = n.getPriorPr();
 				try {
 					this.LCPD_SQL_addRow(new String[0], new Boolean[0], n.getID(), pr, 1 - pr);
+					SQL++;
 				} catch (SQLException ex) {
 					Logger.getLogger(BayesianAttackGraphAdapted.class.getName()).log(Level.SEVERE, null, ex);
 				}
@@ -1255,8 +1262,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 			}
 		}
-		this.log("All LCPD's tables computed\n");
-		this.log("SQL Writes:" + SQL + "\n");
+		this.log("\nAll LCPD's tables computed\n");
+		this.log("SQL Writes:" + SQL + "\n\n");
 		this.lcpdComputed = true;
 	}
 
@@ -1363,8 +1370,10 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 	 */
 	public Double computeUnconditionalProbability(BayesianNode target, boolean forceRecompute) throws SQLException {
 
-		int SQL = 0;
+//		counters to keep track of how many SQL operation are executed/skipped
+		int SQLr = 0;
 		int SKIP = 0;
+		int expSize = 18; // exponent for base 2 (all combinations possible)
 		
 		if (!target.getUnconditionalPr().equals(Double.NaN) && !forceRecompute) {
 			this.log("PrUnconditional(" + target.getID() + ") = " + target.getUnconditionalPr() + " CACHED\n");
@@ -1407,7 +1416,8 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		int anc_size = (int) ancestorID.size();
 		long startTime = 0;
 		
-		if(anc_size >5) {
+		// keep track of # of operations and elapsed time
+		if(anc_size > expSize) {
 //		 System.out.println("PrUnc: Pa[" + target.getID() + "] size: " + ancestorID.size() + ", #cases " + Math.pow(2, ancestorID.size()));
 		 this.log("PrUnc: Pa[" + target.getID() + "] size: " + ancestorID.size() + ", #cases " + Math.pow(2, ancestorID.size()));
 		 startTime = System.currentTimeMillis();
@@ -1444,7 +1454,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 			Double tmp_pr = LCPD_SQL_searchRecord(target.getID(), parentIDs.toArray(new String[parentIDs.size()]),
 					parentStates, true);
-			SQL++;
+			SQLr++;
 			partialPR *= tmp_pr;
 
 			// END TARGET NODE
@@ -1485,7 +1495,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 
 				tmp_pr = LCPD_SQL_searchRecord(p.getID(), parentIDs.toArray(new String[parentIDs.size()]), parentStates,
 						pState);
-				SQL++;
+				SQLr++;
 				partialPR *= tmp_pr;
 
 				if (partialPR == 0) {
@@ -1504,11 +1514,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 //			 String.format("%.2f", sum_result)); //COMMENT FOR INLINE
 		}
 		
-		if(anc_size >5) {
+		if(anc_size > expSize) {
 			long endTime = System.currentTimeMillis();
 			long t = (endTime-startTime);
-			this.log("Total elapsed time in computation of "
-					+ "PrUnc is :" + t + "ms");
+			this.log("\nTotal elapsed time in computation of "
+					+ "PrUnc is :" + t + "ms\n");
 		}
 
 		target.setUnconditionalPr(sum_result);
@@ -1518,7 +1528,7 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 //		 + "Result" //COMMENT FOR INLINE
 //				+ ") = " + String.format("%.2f", sum_result) + "\n");
 				+ ") = " + String.format("%.2f", sum_result) );
-		this.log("SQL reads: " + SQL + " SKIPs: " + SKIP +"\n"); 
+		this.log("\nSQL reads: " + SQLr + " SKIPs: " + SKIP +"\n"); 
 		return sum_result;
 	}
 

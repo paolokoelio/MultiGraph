@@ -23,8 +23,8 @@ public class DBManager {
     public static String translateFromMySQLtoSQLite(String query) {
         return query
                 .replaceAll("INT", "INTEGER")
-//                .replaceAll("AUTO_INCREMENT", "")
-                .replaceAll("AUTO_INCREMENT", "IDENTITY")
+//                .replaceAll("AUTO_INCREMENT", "") // to uncomment when switching back to SQlite
+                .replaceAll("AUTO_INCREMENT", "IDENTITY") // to comment when switching back to SQlite
                 .replaceAll("UNIQUE INDEX ID_UNIQUE", "PRIMARY KEY")
                 .replaceAll("ASC", "")
         ;

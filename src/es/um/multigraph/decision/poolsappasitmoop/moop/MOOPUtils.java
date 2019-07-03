@@ -25,6 +25,7 @@ public class MOOPUtils {
 	private double[][] lgs;
 	private static final String NEW_LINE_SEPARATOR = "\n";
 	private static final String FILE_HEADER = "cmId,targetId,type";
+	private static final String PATH_SOL = "files/solutions/";
 
 	/**
 	 * Ordered Nodes's IDs (w.r.t. to LGs).
@@ -88,7 +89,7 @@ public class MOOPUtils {
 
 			Variable sol = solution.getVariable(0);
 
-			System.out.println("Solution " + (i + 1) + ":" + " SCC min: " + objectives[0] + " LG max: " + objectives[1]
+			System.out.println("Sol " + (i + 1) + ":" + " SCC min: " + objectives[0] + " LG max: " + objectives[1]
 					+ " Binary String: " + sol);
 
 			solString = sol.toString().toCharArray();
@@ -106,7 +107,7 @@ public class MOOPUtils {
 
 	public void writeCSV(String path, List<String> plan) {
 
-		String base_path = "files/solutions/";
+		String base_path = PATH_SOL;
 		Date date = new Date();
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
 		path = base_path + path + "_" + dateFormat.format(date) + ".csv";

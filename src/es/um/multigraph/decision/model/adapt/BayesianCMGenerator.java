@@ -28,8 +28,8 @@ public class BayesianCMGenerator {
 
 	private Collection<? extends Node> bag;
 //	private static final String EXPLOIT_NODE = "vulExists";
-	private static final String CM_NODE = "pn";
-	private static final double DEFAULT_COST = 0.5;
+	private static final String CM_NODE = "p";
+	private static final double DEFAULT_COST = 1.0;
 	private static final double DEFAULT_prFalse = 1.0;
 	private static final double DEFAULT_prTrue = 0.0;
 
@@ -55,7 +55,7 @@ public class BayesianCMGenerator {
 			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue())) {
 
 				// FIXME generate unique ID or some clever system
-				String nodeId = "p" + node.getID();
+				String nodeId = CM_NODE + node.getID();
 
 				BayesianCMNode<Solution> cm = new BayesianCMNode<>(nodeId, SI_SystemInformationIntegrity.SI_02);
 				cm.getCountermeasure().setCost(DEFAULT_COST);
@@ -71,8 +71,9 @@ public class BayesianCMGenerator {
 		}
 	}
 
+	//FIXME code duplication in BayesianAdapter
 	/**
-	 * TODO FIX code duplication in BayesianAdapter Extracts the facts as per MulVAL
+	 * Extracts the facts as per MulVAL
 	 * predicates and predicate name in the first position e.g. vulExist(facts...,
 	 * vulExists, fileServer, 'CVE-7777', 40, nfs) => [vulExists, fileServer,
 	 * 'CVE-7777', 40, nfs]

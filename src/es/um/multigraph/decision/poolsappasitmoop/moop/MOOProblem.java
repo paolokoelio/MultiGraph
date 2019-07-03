@@ -164,7 +164,7 @@ public class MOOProblem extends AbstractProblem {
 	}
 
 	public String getPropsRepresentation() {
-		return "moop: " + "nvluns: " + this.nvulns + "; nCMs " + this.ncms + "; SCC " + this.scc.length + "; LGs "
+		return "MOOP: " + "nVluns: " + this.nvulns + "; nCMs " + this.ncms + "; SCC " + this.scc.length + "; LGs "
 				+ this.lg.length + "\n";
 	}
 
