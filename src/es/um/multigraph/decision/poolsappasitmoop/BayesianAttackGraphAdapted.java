@@ -557,25 +557,33 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		log("\nSecurity plans (written to files): \n");
 		
 		/* Write and log CSVs with plans */
-		int j = 1;
-		List<String> rowsCSV = new ArrayList<String>();
+		int j = 1;	//j-th Security Mitigation Plan
+		List<String> rows = new ArrayList<String>();
+		List<List<String>> rowsCSV = new ArrayList<List<String>>();
 		for (Iterator<List<String>> iterator = secPlans.iterator(); iterator.hasNext();) {
 			List<String> plan = iterator.next();	String row;
 			
 				BayesianCMNode<Solution> cmNode = null;
+				if(plan.isEmpty())
+					rows.add(j + ",,\n");
 				for (Iterator<String> iterator2 = plan.iterator(); iterator2.hasNext();) {
 					cmNode = (BayesianCMNode<Solution>)  this.getNodeByID(iterator2.next());
-					row = cmNode.getID() + "," + cmNode.getOut().iterator().next().getTo().getID() + "," + cmNode.getCountermeasure() + "\n";
+//					row = cmNode.getID() + "," + cmNode.getOut().iterator().next().getTo().getID() + "," + cmNode.getCountermeasure() + "\n";
+					row = cmNode.getOut().iterator().next().getTo().getID() + "," + cmNode.getCountermeasure().getCost() + "\n";
 //					log(row);
-					rowsCSV.add(row);
+					row = j + "," + row;
+					rows.add(row);
 				}
 				
-			log("Plan" + j + ": " + rowsCSV + "\n");
-			utMoop.writeCSV(PAPER_PREFIX + j, rowsCSV);
-			rowsCSV = new ArrayList<String>();
+			log("Plan" + j + ": " + rows + "\n");
+			rowsCSV.add(rows);
+			
+//			rows = new ArrayList<String>();
 			j++;
 		}
-
+		String[] scenDir = this.path.split("/");
+		utMoop.writeCSV(PAPER_PREFIX + scenDir[scenDir.length-1], rows);
+		
 		/* Apply first secPlan */
 //		if(!secPlans.isEmpty())
 //			for(Iterator<String> iterator = secPlans.get(0).iterator(); iterator.hasNext();)

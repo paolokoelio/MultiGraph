@@ -24,7 +24,7 @@ public class MOOPUtils {
 //	private Map<String,double[]> nodeLG;
 	private double[][] lgs;
 	private static final String NEW_LINE_SEPARATOR = "\n";
-	private static final String FILE_HEADER = "cmId,targetId,type";
+	private static final String FILE_HEADER = "plan,node,cost";
 	private static final String PATH_SOL = "files/solutions/";
 
 	/**
