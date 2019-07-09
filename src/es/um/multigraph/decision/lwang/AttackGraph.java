@@ -65,7 +65,7 @@ public class AttackGraph implements DecisionInterface {
 	private boolean stop = false;
 	private String path;
 	private static final String NEW_LINE_SEPARATOR = "\n";
-	private static final String FILE_HEADER = "cost,nodeIds";
+	private static final String FILE_HEADER = "nodeIds, cost";
 	private static final String PAPER_PREFIX = "Wang_NetHard";
 	private static final String DEFAULT_PATH = "files/ags/scenario/";
 	private static final String DEF_FILENAME = "AttackGraph.xml";
@@ -176,13 +176,14 @@ public class AttackGraph implements DecisionInterface {
 			for (Iterator<MyNode> iterator2 = sol.iterator(); iterator2.hasNext();) {
 				MyNode node = iterator2.next();
 				row = row + "," + node.getID();
-				cost += node.getCost();
+				cost += node.getCost(); //TODO FIXME
 			}
 			System.out.println(cost + row);
 		}
 		
 //		System.out.println(listSol);
-		this.writeCSV(listSol);
+		String[] scenDir = this.path.split("/");
+		this.writeCSV(scenDir[scenDir.length - 1],listSol);
 		
 	}
 
@@ -317,11 +318,11 @@ public class AttackGraph implements DecisionInterface {
 		return orderedSolutions;
 	}
 
-	public void writeCSV(List<List<MyNode>> conds) {
+	public void writeCSV(String scenario, List<List<MyNode>> conds) {
 		String path = PAPER_PREFIX;
 		Date date = new Date();
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
-		path = SOL_BASE_PATH + path + "_" + dateFormat.format(date) + ".csv";
+		path = SOL_BASE_PATH + path + "_" + scenario + "_" + dateFormat.format(date) + ".csv";
 
 		FileUtils fileUtils = new FileUtils();
 		FileWriter writer = fileUtils.getWriter(path);

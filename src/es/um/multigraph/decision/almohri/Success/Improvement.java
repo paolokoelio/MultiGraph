@@ -25,9 +25,9 @@ import es.um.multigraph.utils.FileUtils;
 
 public class Improvement {
 
-	// default prob given to improv nodes when generated
+	// default probability given to improvement nodes when generated
 	private static final double DEFAULT_PROB = 1.0;
-	// prob of improv nodes when activated in a combination
+	// probability of improvement nodes when activated in a combination
 	private static final double IMP_PROB = 0.1;
 
 	private Graph g;
@@ -37,7 +37,12 @@ public class Improvement {
 	private Set<String> goalNodes;
 	private Map<String, Double> goalInitProbs = new HashMap<String, Double>();
 //	private Map<String, ArrayListMultimap<Double, Set<Integer>>> goalFinalProbs = new HashMap<String, ArrayListMultimap<Double, Set<Integer>>>();
+	// contains goal nodes, indexes of added improvement nodes and respective
+	// probabilities
 	private Map<String, ListMultimap<Double, Set<Integer>>> goalFinalProbs = new HashMap<String, ListMultimap<Double, Set<Integer>>>();
+	private Map<String, Set<Integer>> goalsAndNodes = new HashMap<String, Set<Integer>>(); // final result, contains
+																							// <goal node, Set<improved
+																							// nodes>>
 
 	public Improvement(String path, Graph g) {
 		this.g = g;
@@ -92,7 +97,7 @@ public class Improvement {
 			int allCombSize = allCombInd.size();
 			System.out.println("N of possible combination of improvemetns: " + allCombSize);
 
-			// having Guava MultiMap implementation saves us some mental health
+			// having Guava MultiMap implementation saves us some mental health problems
 //			ArrayListMultimap<Double, Set<Integer>> ECSAs = ArrayListMultimap.create();
 
 			ListMultimap<Double, Set<Integer>> ECSAs = MultimapBuilder.treeKeys().arrayListValues().build();
@@ -107,11 +112,12 @@ public class Improvement {
 				// find new ECSA
 				this.slp.solve(this.path, gTmp);
 
-				System.out.println("T: " + ((Vertex) gTmp.vertices.get(goal)).computedProbability);
+				System.out.println("Prob for " + goal +": " + ((Vertex) gTmp.vertices.get(goal)).computedProbability);
 
 				// update list of goal ECSAs, indexes in gTmp
 				p = ((Vertex) gTmp.vertices.get(goal)).computedProbability;
 
+				// the comb is the set of indices of improvement nodes
 				ECSAs.put(p, comb);
 //				reccs.put(comb,p);
 
@@ -122,31 +128,74 @@ public class Improvement {
 			goalFinalProbs.put(sg, ECSAs);
 		}
 
-		System.out.println(goalFinalProbs);
+		for (Iterator iterator = goalFinalProbs.keySet().iterator(); iterator.hasNext();) {
+			String goalKey = (String) iterator.next();
+
+			String goal = goalKey;
+			Set<Integer> impNodes = new HashSet<Integer>();
+
+			for (Iterator iterator2 = goalFinalProbs.get(goalKey).values().iterator(); iterator2.hasNext();) {
+				Set<Integer> setInt = (Set<Integer>) iterator2.next();
+
+				for (Iterator iterator4 = setInt.iterator(); iterator4.hasNext();) {
+					Integer impNode = (Integer) iterator4.next();
+
+					for (Iterator iterator3 = this.g.arcs.iterator(); iterator3.hasNext();) {
+						Arc arc = (Arc) iterator3.next();
+
+						// this is nightmare
+						if (arc.u == ((Vertex) this.g.vertices.get(impNode.intValue())).node) {
+//							System.out.println("u: " + arc.u);
+//							System.out.println("v:" + arc.v);
+							impNodes.add(arc.v); // to be improved node
+						}
+					}
+				}
+			}
+
+			goalsAndNodes.put(goalKey, impNodes);
+
+		}
+
+		// TODO make test with scen 3
+		// {1={0.034816=[[73]], 0.34816=[[]]}, 68={0.0160989=[[74]], 0.160989=[[]]},
+		// 38={0.034816=[[75]], 0.34816=[[]]}}
+
+		System.out.println("Final security plan: " + goalsAndNodes);
+//		System.out.println(goalFinalProbs);
+
+		// write everything into CSV
+		String line = "";
+		for (String goal : goalsAndNodes.keySet())
+			for (Integer n : goalsAndNodes.get(goal))
+				line = line + n + "," + FIXED_COST + NEW_LINE_SEPARATOR;
+		
+		String[] scenDir = this.path.split("/");
+		writeCSV(scenDir[scenDir.length - 1], line);
 
 //		Map<String, ArrayListMultimap<Double, Set<Integer>>> 
-		for (String goal : goalFinalProbs.keySet()) {
-			ListMultimap<Double, Set<Integer>> reccs = goalFinalProbs.get(goal);
-
-			String line = "";
-			for (Double k : reccs.keySet()) {
-
-				for (Iterator<Set<Integer>> iterator = reccs.get(k).iterator(); iterator.hasNext();) {
-					Set<Integer> recc = (Set<Integer>) iterator.next();
-					for (Integer id : recc) {
-						line = line + id + ",";
-					}
-					if (recc.isEmpty())
-						line = line + "[],";
-					int ind = line.lastIndexOf(",");
-					line = line.substring(0, ind) + NEW_LINE_SEPARATOR;
-				}
-
-			}
-			// test
-			System.out.println(goal + ": \n" + line);
-			writeCSV(goal, line);
-		}
+//		for (String goal : goalFinalProbs.keySet()) {
+//			ListMultimap<Double, Set<Integer>> reccs = goalFinalProbs.get(goal);
+//
+//			line = "";
+//			for (Double k : reccs.keySet()) {
+//
+//				for (Iterator<Set<Integer>> iterator = reccs.get(k).iterator(); iterator.hasNext();) {
+//					Set<Integer> recc = (Set<Integer>) iterator.next();
+//					for (Integer id : recc) {
+//						line = line + id + ",";
+//					}
+//					if (recc.isEmpty())
+//						line = line + "[],";
+//					int ind = line.lastIndexOf(",");
+//					line = line.substring(0, ind) + NEW_LINE_SEPARATOR;
+//				}
+//
+//			}
+//			// test
+////			System.out.println(goal + ": \n" + line);
+////			writeCSV(goal, line);
+//		}
 
 	}
 
@@ -291,7 +340,7 @@ public class Improvement {
 	 * @param v
 	 * @return All ancestors of v
 	 */
-	private Set<Vertex> getAllPredecessors(Vertex v) { //TODO check alternative to recursion
+	private Set<Vertex> getAllPredecessors(Vertex v) { // TODO check alternative to recursion
 
 //		Set<Vertex> allPreds = new HashSet<Vertex>();
 
@@ -304,7 +353,7 @@ public class Improvement {
 			}
 		return this.allPreds;
 	}
-	
+
 	/**
 	 * Get preds of a node.
 	 * 
@@ -346,15 +395,16 @@ public class Improvement {
 	}
 
 	private static final String NEW_LINE_SEPARATOR = "\n";
-	private static final String FILE_HEADER = "cost,nodeIds";
+	private static final String FILE_HEADER = "nodeIds,cost";
 	private static final String PAPER_PREFIX = "Almohri";
 	private static final String SOL_BASE_PATH = "files/solutions/";
+	private static final Double FIXED_COST = 1.0;
 
-	public void writeCSV(String goal, String list) {
+	public void writeCSV(String scenario, String list) {
 		String path = PAPER_PREFIX;
 		Date date = new Date();
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
-		path = SOL_BASE_PATH + path + "_" + goal + "_" + dateFormat.format(date) + ".csv";
+		path = SOL_BASE_PATH + path + "_" + scenario + "_" + dateFormat.format(date) + ".csv";
 
 		FileUtils fileUtils = new FileUtils();
 		FileWriter writer = fileUtils.getWriter(path);
