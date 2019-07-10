@@ -66,7 +66,7 @@ public class AttackGraph implements DecisionInterface {
 	private String path;
 	private static final String NEW_LINE_SEPARATOR = "\n";
 	private static final String FILE_HEADER = "nodeIds, cost";
-	private static final String PAPER_PREFIX = "Wang_NetHard";
+	private static final String PAPER_PREFIX = "Wang";
 	private static final String DEFAULT_PATH = "files/ags/scenario/";
 	private static final String DEF_FILENAME = "AttackGraph.xml";
 	private static final String SOL_BASE_PATH = "files/solutions/";
@@ -175,10 +175,10 @@ public class AttackGraph implements DecisionInterface {
 			String row = ""; double cost = 0d;
 			for (Iterator<MyNode> iterator2 = sol.iterator(); iterator2.hasNext();) {
 				MyNode node = iterator2.next();
-				row = row + "," + node.getID();
+				row = row + node.getID();
 				cost += node.getCost(); //TODO FIXME
 			}
-			System.out.println(cost + row);
+			System.out.println(row + "," + cost);
 		}
 		
 //		System.out.println(listSol);
@@ -338,11 +338,11 @@ public class AttackGraph implements DecisionInterface {
 				String row = ""; double cost = 0d;
 				for (Iterator<MyNode> iterator2 = sol.iterator(); iterator2.hasNext();) {
 					MyNode node = iterator2.next();
-					row = row + "," + node.getID();
+					row = row + node.getID() + ",";
 					cost += node.getCost();
 				}
 //				System.out.println(cost + row);
-				writer.append(cost + row + NEW_LINE_SEPARATOR);
+				writer.append(row + cost + NEW_LINE_SEPARATOR);
 			}
 
 		} catch (Exception e) {
