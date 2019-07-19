@@ -175,10 +175,10 @@ public class AttackGraph implements DecisionInterface {
 			String row = ""; double cost = 0d;
 			for (Iterator<MyNode> iterator2 = sol.iterator(); iterator2.hasNext();) {
 				MyNode node = iterator2.next();
-				row = row + node.getID();
+				row = row + node.getID() + ",";
 				cost += node.getCost(); //TODO FIXME
 			}
-			System.out.println(row + "," + cost);
+			System.out.println(row + cost);
 		}
 		
 //		System.out.println(listSol);
@@ -321,7 +321,7 @@ public class AttackGraph implements DecisionInterface {
 	public void writeCSV(String scenario, List<List<MyNode>> conds) {
 		String path = PAPER_PREFIX;
 		Date date = new Date();
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		path = SOL_BASE_PATH + path + "_" + scenario + "_" + dateFormat.format(date) + ".csv";
 
 		FileUtils fileUtils = new FileUtils();

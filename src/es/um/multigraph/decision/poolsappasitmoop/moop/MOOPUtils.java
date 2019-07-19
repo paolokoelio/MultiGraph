@@ -109,7 +109,7 @@ public class MOOPUtils {
 
 		String base_path = PATH_SOL;
 		Date date = new Date();
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		path = base_path + path + "_" + dateFormat.format(date) + ".csv";
 
 		FileUtils fileUtils = new FileUtils();

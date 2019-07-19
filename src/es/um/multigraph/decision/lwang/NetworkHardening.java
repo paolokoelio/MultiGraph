@@ -51,7 +51,7 @@ public class NetworkHardening {
 		// result L
 		this.Lexpr = And.of(Variable.of(this.goals.get(0).getID()));
 		for (int j = 1; j < this.goals.size(); j++)
-			this.Lexpr = And.of(this.Lexpr, Variable.of(this.goals.get(j).getID()));
+			this.Lexpr = Or.of(this.Lexpr, Variable.of(this.goals.get(j).getID()));
 
 		this.preE = new HashMap<MyNode, List<MyNode>>();
 		this.preC = new HashMap<MyNode, List<MyNode>>();

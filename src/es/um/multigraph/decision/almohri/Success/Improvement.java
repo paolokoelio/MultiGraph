@@ -403,7 +403,7 @@ public class Improvement {
 	public void writeCSV(String scenario, String list) {
 		String path = PAPER_PREFIX;
 		Date date = new Date();
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		path = SOL_BASE_PATH + path + "_" + scenario + "_" + dateFormat.format(date) + ".csv";
 
 		FileUtils fileUtils = new FileUtils();

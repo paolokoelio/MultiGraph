@@ -130,7 +130,7 @@ public class BayesianAdapter implements Adapter {
 			BayesianNodeAdapted andNode = (BayesianNodeAdapted) toAndEdge.getTo();
 			
 			//define node types as per mulVAL rule files
-			// FIXME set enum
+			// FIXME set enum, see MulvalPrimitives
 			String predicate = facts.get(0);
 			boolean isVul = predicate.equals(MulVALPrimitives.VULN.getValue());
 			boolean isNfsExportInfo = predicate.equals("nfsExportInfo");

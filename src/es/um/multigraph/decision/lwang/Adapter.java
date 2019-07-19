@@ -40,7 +40,8 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 	public static final String TYPE_AND = "AND";
 	public static final String TYPE_OR = "OR";
 	public static final String PREFIX_ID = "n";
-	private static final double DEFAULT_COST = 0.5;
+	private static final double DEFAULT_COST = 1.0;
+	private static final double DEFAULT_HIGH_COST = 10.0;
 	
 	public Adapter() {
 		this.myNodes = new HashMap<Integer, MyNode>();
@@ -73,7 +74,10 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 			
 			
 			node.setLabel(tmpNode.get("fact"));
-			node.setCost(DEFAULT_COST);
+			if(facts.get(0).contains("attackerLocated"))
+				node.setCost(DEFAULT_HIGH_COST);
+			else
+				node.setCost(DEFAULT_COST);
 			
 			
 			// default state for an active node => true
