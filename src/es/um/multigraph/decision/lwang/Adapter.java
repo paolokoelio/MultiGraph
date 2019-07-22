@@ -74,7 +74,7 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 			
 			
 			node.setLabel(tmpNode.get("fact"));
-			if(facts.get(0).contains("attackerLocated"))
+			if(facts.get(0).contains(MulVALPrimitives.ATTACKER.getValue()))
 				node.setCost(DEFAULT_HIGH_COST);
 			else
 				node.setCost(DEFAULT_COST);
@@ -134,20 +134,22 @@ public class Adapter implements es.um.multigraph.decision.basegraph.Adapter {
 			MyNode myExploitNode = null;
 			MyNode andNode = (MyNode) toAndEdge.getTo();
 			
-			// FIXME set enum
 			String predicate = facts.get(0);
 			boolean isVul = predicate.equals(MulVALPrimitives.VULN.getValue());
-			boolean isNfsExportInfo = predicate.equals("nfsExportInfo");
-			boolean isInCompetent = predicate.equals("inCompetent");
-			boolean isAccessFile = predicate.equals("accessFile");
-			boolean isHacl = predicate.equals("hacl");
-			boolean isAndNode = andNode.getTypeMulval().equals("AND");
+			boolean isNfsExportInfo = predicate.equals(MulVALPrimitives.NFS_EXP.getValue());
+			boolean isInCompetent = predicate.equals(MulVALPrimitives.INCOMPETENT.getValue());
+			boolean isAccessFile = predicate.equals(MulVALPrimitives.ACCESSFILE.getValue());
+			boolean isHacl = predicate.equals(MulVALPrimitives.HACL.getValue());
+			boolean isAndNode = andNode.getTypeMulval().equals(MulVALPrimitives.AND.getValue());
 			
+			// decide which node type goes to replace the AND node
 			if (isVul || isNfsExportInfo || isInCompetent) {
-				if((isAccessFile && isAndNode) || (isHacl && isAndNode))
-					exploitNode = toAndEdge.getTo();
-				else
-					exploitNode = toAndEdge.getFrom();
+				exploitNode = toAndEdge.getFrom();
+				myExploitNode = (MyNode) exploitNode;
+				myExploitNode.setType(MyNode.EXPLOIT);
+				exploitNode = myExploitNode;
+			} else if ((isAccessFile && isAndNode) || (isHacl && isAndNode)) {
+				exploitNode = toAndEdge.getTo(); //this is never reached
 				myExploitNode = (MyNode) exploitNode;
 				myExploitNode.setType(MyNode.EXPLOIT);
 				exploitNode = myExploitNode;

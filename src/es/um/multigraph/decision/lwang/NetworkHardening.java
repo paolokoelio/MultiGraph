@@ -34,7 +34,7 @@ public class NetworkHardening {
 	// Result of initials conditions to be negated
 	private List<Object> L;
 	Expression<String> Lexpr;
-	// Class useful to to store the result L of initials conditions to be negated
+	// Class useful to store the result L of initial conditions to be negated
 //	private InitialConds initConds = new InitialConds();
 	// Temporary FIFO queue to store search results
 	private Queue<MyNode> queue;

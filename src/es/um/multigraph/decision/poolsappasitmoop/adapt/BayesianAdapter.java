@@ -130,24 +130,23 @@ public class BayesianAdapter implements Adapter {
 			BayesianNodeAdapted andNode = (BayesianNodeAdapted) toAndEdge.getTo();
 			
 			//define node types as per mulVAL rule files
-			// FIXME set enum, see MulvalPrimitives
 			String predicate = facts.get(0);
+			
 			boolean isVul = predicate.equals(MulVALPrimitives.VULN.getValue());
-			boolean isNfsExportInfo = predicate.equals("nfsExportInfo");
-			boolean isInCompetent = predicate.equals("inCompetent");
-			boolean isAccessFile = predicate.equals("accessFile");
-			boolean isHacl = predicate.equals("hacl");
-			boolean isAndNode = andNode.getType().equals("AND");
+			boolean isNfsExportInfo = predicate.equals(MulVALPrimitives.NFS_EXP.getValue());
+			boolean isInCompetent = predicate.equals(MulVALPrimitives.INCOMPETENT.getValue());
+			boolean isAccessFile = predicate.equals(MulVALPrimitives.ACCESSFILE.getValue());
+			boolean isHacl = predicate.equals(MulVALPrimitives.HACL.getValue());
+			boolean isAndNode = andNode.getType().equals(MulVALPrimitives.AND.getValue());
 			
 //			if (facts.get(0).equals(MulVALPrimitives.VULN.getValue()))
 //				exploitNode = toAndEdge.getFrom();
 			
 			//decide which available node type has to replace a mulVAL AND node
 			if (isVul || isNfsExportInfo || isInCompetent) {
-				if((isAccessFile && isAndNode) || (isHacl && isAndNode))
-					exploitNode = toAndEdge.getTo();
-				else
-					exploitNode = toAndEdge.getFrom();
+				exploitNode = toAndEdge.getFrom();
+			} else if((isAccessFile && isAndNode) || (isHacl && isAndNode)) {
+				exploitNode = toAndEdge.getTo();
 			}
 			
 			// if toAnd is a vulExist node => point the other toAnds to this vulExist and

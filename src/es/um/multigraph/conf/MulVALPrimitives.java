@@ -14,15 +14,13 @@ public enum MulVALPrimitives {
      * Generic Derived Primitive == OR
      */
     DERIVED_GENERIC("Generic Derived Primitive"),
-    /**
-     * attackerLocated(_location)
-     */
+
     /**
      * AND (primitives)
      */
     AND("AND"),
     /**
-     * attackerLocated(TODO)
+     * attackerLocated(_location)
      */
     ATTACKER("attackerLocated"),
     /**
@@ -57,6 +55,18 @@ public enum MulVALPrimitives {
      * netAccess(_host, _protocol, _port)
      */
     NET_ACCESS("netAccess"),
+    /**
+     * nfsExportInfo(_server, _path, _access, _client)
+     */
+    NFS_EXP("nfsExportInfo"),
+    /**
+     * inCompetent(_principal)
+     */
+    INCOMPETENT("inCompetent"),
+    /**
+     * accessFile(_machine,_access,_filepath)
+     */
+    ACCESSFILE("accessFile"),
     ;
 
     private MulVALPrimitives() {
