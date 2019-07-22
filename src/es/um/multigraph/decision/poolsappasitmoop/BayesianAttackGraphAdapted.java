@@ -438,11 +438,11 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 		
 		for (@SuppressWarnings("rawtypes")
 		Iterator iterator = this.getEdges().iterator(); iterator.hasNext();) {
-			BayesianEdgeAdapted edge = (BayesianEdgeAdapted) iterator.next();
+			BayesianEdgeAdapted edge = (BayesianEdgeAdapted) iterator.next();//TODO deleteme
 		}
 		
 		//	keep only the nodes ancestors of the Goal Node
-		Set<BayesianNode> newBAG = new HashSet<BayesianNode>(); //uncomment to retrieve old BAG
+		Set<BayesianNode> newBAG = new HashSet<BayesianNode>();
 //		Set<BayesianNode> oldBAG = this.BAG; //uncomment to retrieve old BAG
 		for (@SuppressWarnings("rawtypes")
 		Iterator it = goalNodes.iterator(); it.hasNext();) {
@@ -452,7 +452,6 @@ public class BayesianAttackGraphAdapted implements DecisionInterface {
 			BayesianNodeAdapted goal = (BayesianNodeAdapted) this.getNodeByID(g);
 			goal.setExpectedLoss(goalLoss);
 			goal.setExpectedGain(goalGain);
-//			((BayesianNodeAdapted) this.getNodeByID(goalNode)).setExpectedGain(1000d);	
 			newBAG.addAll(goal.getAllAncestor());
 			newBAG.add(goal);
 		}

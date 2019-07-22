@@ -1,0 +1,45 @@
+common vertices in mulval
+
+Almohri:
+
+Negative (rule)
+netAccess
+deviceOnline
+maliciousInteraction
+exploit (Rule)
+attackerInRegion
+softwarePerm
+(nodes with ports)
+wireless
+android || win
+vulExists
+hacl
+networkService
+
+Wang:
+
+everything that is a initial node, eg:
+	attackerLocated
+	hacl
+	isAccessFile
+not included:
+	vulExists
+	nfsExportInfo
+	inCompetent
+	
+
+
+
+accessFile
+
+AND (rule)
+
+Poolsappasit:
+
+
+nfsExportInfo
+inCompetent
+accessFile
+AND (rule)
+vulExists
+hacl
